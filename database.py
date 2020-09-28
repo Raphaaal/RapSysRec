@@ -1,3 +1,5 @@
+from itertools import combinations
+
 from neo4j_handler import Neo4JHandler
 from spotify_loader import SpotifyLoader
 from pprint import pprint
@@ -27,7 +29,6 @@ class Database:
     def create_from_artist(self, artist_urn):
         artist = self.spotify.get_artist_by_id(artist_urn)
         feat_info = self.spotify.get_artist_ft_tracks(artist)
-        pprint(feat_info)
         for album in feat_info:
             for feat in album:
                 artists_id_list = []
@@ -47,14 +48,28 @@ class Database:
                         self.graph.create_print_artist(name, urn, popularity)
                         logger.info('Artist %s (%s) did not exist. Created in DB', name, urn)
 
-                # TODO: Do not create feat if it already exists
-                self.graph.create_print_feat(
-                    urn1=artists_id_list[0],  # TODO: Handle feats with more than 2 artists
-                    urn2=artists_id_list[1],
-                    track_id=feat['track_id'],
-                    track_name=feat['track_name']
-                    # TODO: Handle feat date in relationship creation
-                )
+                # Test if feat already exists
+                feat_test = False
+                for artists_pair in list(combinations(artists_id_list, 2)):
+                    feat_test = self.graph.get_print_feat(
+                        track_id=feat['track_id'],
+                        track_name=feat['track_name'],
+                        artist1_urn=artists_pair[0],
+                        artist2_urn=artists_pair[1]
+                    )
+                    if feat_test:
+                        break
+                if not feat_test:
+                    # Handle feats with more than 2 artists
+                    for artists_pair in list(combinations(artists_id_list, 2)):
+                        self.graph.create_print_feat(
+                            urn1=artists_pair[0],
+                            urn2=artists_pair[1],
+                            track_id=feat['track_id'],
+                            track_name=feat['track_name'],
+                            track_date=feat['track_date']
+                        )
+                        logger.info('Feat %s (%s) did not exist. Created in DB', feat['track_name'], feat['track_id'])
 
 
 if __name__ == "__main__":
@@ -65,5 +80,3 @@ if __name__ == "__main__":
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
     db.create_from_artist("58wXmynHaAWI5hwlPZP3qL")
-
-

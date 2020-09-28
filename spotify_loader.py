@@ -33,10 +33,10 @@ class SpotifyLoader:
 
     @staticmethod
     def get_artist_info(artist):
-        logger.info('====%s====', artist['name'])
-        logger.info('Popularity: %s', artist['popularity'])
-        if len(artist['genres']) > 0:
-            logger.info('Genres: %s', ','.join(artist['genres']))
+        # logger.info('====%s====', artist['name'])
+        # logger.info('Popularity: %s', artist['popularity'])
+        # if len(artist['genres']) > 0:
+            # logger.info('Genres: %s', ','.join(artist['genres']))
         artist_info = {
             "artist_id": artist['id'],
             "artist_name": artist['name'],
@@ -49,7 +49,7 @@ class SpotifyLoader:
         track = self.sp.track(track_id)
         artists_list = track['artists']
         if len(artists_list) > 1:
-            logger.info('%s. - id: %s', track['name'], track['id'])
+            logger.info('%s (%s)', track['name'], track['id'])
             artists_objects_lists = []
             for artist in artists_list:
                 artists_objects_lists.append(
@@ -84,7 +84,7 @@ class SpotifyLoader:
 
     def get_artist_ft_tracks(self, artist):
         albums = []
-        results = self.sp.artist_albums(artist['id'], album_type='album')  # TODO: Handle singles also
+        results = self.sp.artist_albums(artist['id'])
         albums.extend(results['items'])
         artist_ft_info = []
         while results['next']:
