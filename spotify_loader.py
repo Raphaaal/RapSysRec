@@ -2,6 +2,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import logging
 from pprint import pprint
+from history import check_album_is_scraped, write_scraped_album
 
 logger = logging.getLogger('spotify_loader')
 logging.basicConfig(level='INFO')
@@ -49,7 +50,7 @@ class SpotifyLoader:
         track = self.sp.track(track_id)
         artists_list = track['artists']
         if len(artists_list) > 1:
-            logger.info('%s (%s)', track['name'], track['id'])
+            logger.info('Scraping track %s (%s)', track['name'], track['id'])
             artists_objects_lists = []
             for artist in artists_list:
                 artists_objects_lists.append(
@@ -82,9 +83,9 @@ class SpotifyLoader:
         if len(album_feat_info) > 0:
             return album_feat_info
 
-    def get_artist_ft_tracks(self, artist):
+    def get_artist_ft_tracks(self, artist, scraped_album_csv='scraped_albums.csv'):
         albums = []
-        results = self.sp.artist_albums(artist['id'])
+        results = self.sp.artist_albums(artist['id'])  # TODO: maintain a list of scraped albums ids (in a CSV) not to make the same calls downstream
         albums.extend(results['items'])
         artist_ft_info = []
         while results['next']:
@@ -92,12 +93,19 @@ class SpotifyLoader:
             albums.extend(results['items'])
         unique = set()  # skip duplicate albums
         for album in albums:
-            name = album['name'].lower()
-            if name not in unique:
-                unique.add(name)
-                album_ft_info = self.get_album_ft_tracks(album)
-                if album_ft_info:
-                    artist_ft_info.append(album_ft_info)
+            album_urn = album['id']
+            logger.info("Scraping album %s", album_urn)
+            if not check_album_is_scraped(scraped_album_csv, album_urn):
+                name = album['name'].lower()
+                if name not in unique:
+                    unique.add(name)
+                    album_ft_info = self.get_album_ft_tracks(album)
+                    if album_ft_info:
+                        artist_ft_info.append(album_ft_info)
+                write_scraped_album(scraped_albums_csv='scraped_albums.csv', album_urn=album_urn)
+                logger.info('Album %s appended to scraped albums.', album_urn)
+            else:
+                logger.info('Album %s already present in scraped albums.', album_urn)
         if len(artist_ft_info) > 0:
             return artist_ft_info
 
