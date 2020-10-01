@@ -19,6 +19,21 @@ class Neo4JHandler:
             feat = session.write_transaction(self._create_feat, urn1, urn2, track_id, track_name, track_date)
             return feat
 
+    def merge_genre(self, genre):
+        with self.driver.session() as session:
+            genre = session.write_transaction(self._merge_genre, genre)
+            return genre
+
+    def set_genre_artist(self, genre_name, artist_urn):
+        with self.driver.session() as session:
+            artist_genre = session.write_transaction(self._set_genre_artist, genre_name, artist_urn)
+            return artist_genre
+
+    def get_genre_artist(self, genre_name, artist_urn):
+        with self.driver.session() as session:
+            artist_genre = session.write_transaction(self._get_genre_artist, genre_name, artist_urn)
+            return artist_genre
+
     def get_print_artist(self, urn):
         with self.driver.session() as session:
             artist = session.write_transaction(self._get_artist, urn)
@@ -82,12 +97,46 @@ class Neo4JHandler:
         )
         return [row[0] for row in result]
 
+    @staticmethod
+    def _merge_genre(tx, genre):
+        result = tx.run(
+            "MERGE (g:Genre {name: $genre}) "
+            "RETURN g.name + ' merged.'",
+            genre=genre
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    def _set_genre_artist(tx, genre_name, artist_urn):
+        result = tx.run(
+            "MATCH (g:Genre), (a:Artist) "
+            "WHERE a.urn = $artist_urn AND g.name = $genre_name "
+            "CREATE (a) -[r:GENRE]-> (g) "
+            "RETURN a.name + ' linked to genre ' + g.name ",
+            artist_urn=artist_urn,
+            genre_name=genre_name
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    def _get_genre_artist(tx, genre_name, artist_urn):
+        result = tx.run(
+            "MATCH (g:Genre) <-[:GENRE]- (a:Artist) "
+            "WHERE a.urn = $artist_urn AND g.name = $genre_name "
+            "RETURN g.name, a.name",
+            artist_urn=artist_urn,
+            genre_name=genre_name
+        )
+        return [row[0] for row in result]
+
 
 if __name__ == "__main__":
     graph = Neo4JHandler("bolt://localhost:7687", "neo4j", "root")
     graph.create_print_artist("La Fouine", 1, 37)
     graph.create_print_artist("Booba", 2, 86)
     graph.get_print_artist(1)
-    graph.create_print_feat(1, 2, "abcd", "Reste en chien")
-    graph.get_print_feat("abcd")
+    graph.create_print_feat(1, 2, "abcd", "Reste en chien", "01/01/2020")
+    graph.get_print_feat("abcd", "Reste en chen", 1, 2)
+    graph.merge_genre(genre="Rap")
+    graph.set_genre_artist(artist_urn=1, genre_name="Rap")
     graph.close()

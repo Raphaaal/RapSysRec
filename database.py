@@ -43,13 +43,22 @@ class Database:
                             if not artist_test:
                                 name = ft_artist['artist_name']
                                 urn = ft_artist['artist_id']
-                                # TODO: save API calls by getting artist popularity upstream ?
-                                popularity = self.spotify.get_artist_info(
+                                artist_object = self.spotify.get_artist_info(
                                     self.spotify.get_artist_by_id(ft_artist['artist_id'])
-                                )['artist_popularity']
-                                # TODO: Handle artists genres creation / relationships ?
+                                )
+                                popularity = artist_object['artist_popularity']
                                 self.graph.create_print_artist(name, urn, popularity)
                                 logger.info('Artist %s (%s) did not exist. Created in DB', name, urn)
+
+                                # Merge and link artists' genres
+                                artist_genres = artist_object['artist_genres']
+                                for genre in artist_genres:
+                                    if genre:
+                                        self.graph.merge_genre(genre)
+                                        already_linked_artist_genres = self.graph.get_genre_artist(genre, artist)
+                                        if not already_linked_artist_genres:
+                                            self.graph.set_genre_artist(genre_name=genre, artist_urn=urn)
+                                            logger.info('Artist %s linked to genre %s.', urn, genre)
 
                         # Test if feat already exists
                         feat_test = False
@@ -72,7 +81,10 @@ class Database:
                                     track_name=feat['track_name'],
                                     track_date=feat['track_date']
                                 )
-                                logger.info('Feat %s (%s) did not exist. Created in DB', feat['track_name'], feat['track_id'])
+                                logger.info(
+                                    'Feat %s (%s) did not exist. Created in DB',
+                                    feat['track_name'], feat['track_id']
+                                )
                 write_scraped_artist(scraped_artist_csv, artist_urn)
                 logger.info('Artist %s appended to scraped artists.', artist_urn)
             else:
@@ -88,6 +100,6 @@ if __name__ == "__main__":
         spotify_client_id="28d60111ea634effb71f87304bed9285",
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
-    # db.create_from_artist("58wXmynHaAWI5hwlPZP3qL")  # Booba
-    db.create_from_artist(scraped_artist_csv='scraped_artists.csv', artist_urn="76Pl0epAMXVXJspaSuz8im")  # Freeze Corleone
-    # db.create_from_artist("6Te49r3A6f5BiIgBRxH7FH")  # Ninho
+    # db.create_from_artist(scraped_artist_csv='scraped_artists.csv', artist_urn="58wXmynHaAWI5hwlPZP3qL")  # Booba
+    db.create_from_artist('scraped_artists.csv', "76Pl0epAMXVXJspaSuz8im")  # Freeze Corleone
+    # db.create_from_artist('scraped_artists.csv', "6Te49r3A6f5BiIgBRxH7FH")  # Ninho

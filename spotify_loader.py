@@ -34,10 +34,6 @@ class SpotifyLoader:
 
     @staticmethod
     def get_artist_info(artist):
-        # logger.info('====%s====', artist['name'])
-        # logger.info('Popularity: %s', artist['popularity'])
-        # if len(artist['genres']) > 0:
-            # logger.info('Genres: %s', ','.join(artist['genres']))
         artist_info = {
             "artist_id": artist['id'],
             "artist_name": artist['name'],
@@ -85,7 +81,7 @@ class SpotifyLoader:
 
     def get_artist_ft_tracks(self, artist, scraped_album_csv='scraped_albums.csv'):
         albums = []
-        results = self.sp.artist_albums(artist['id'])  # TODO: maintain a list of scraped albums ids (in a CSV) not to make the same calls downstream
+        results = self.sp.artist_albums(artist['id'])
         albums.extend(results['items'])
         artist_ft_info = []
         while results['next']:
@@ -103,7 +99,7 @@ class SpotifyLoader:
                     if album_ft_info:
                         artist_ft_info.append(album_ft_info)
                 write_scraped_album(scraped_albums_csv='scraped_albums.csv', album_urn=album_urn)
-                logger.info('Album %s appended to scraped albums.', album_urn)
+                logger.info('Album %s appended to scraped albums.', album_urn)  # TODO: append only after writing to the graph db (as for artists history)
             else:
                 logger.info('Album %s already present in scraped albums.', album_urn)
         if len(artist_ft_info) > 0:
