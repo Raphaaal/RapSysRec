@@ -9,12 +9,12 @@ class Neo4JHandler:
     def close(self):
         self.driver.close()
 
-    def create_print_artist(self, name, urn, popularity):
+    def create_artist(self, name, urn, popularity):
         with self.driver.session() as session:
             artist = session.write_transaction(self._create_artist, name, urn, popularity)
             return artist
 
-    def create_print_feat(self, urn1, urn2, track_id, track_name, track_date):
+    def create_feat(self, urn1, urn2, track_id, track_name, track_date):
         with self.driver.session() as session:
             feat = session.write_transaction(self._create_feat, urn1, urn2, track_id, track_name, track_date)
             return feat
@@ -34,12 +34,12 @@ class Neo4JHandler:
             artist_genre = session.write_transaction(self._get_genre_artist, genre_name, artist_urn)
             return artist_genre
 
-    def get_print_artist(self, urn):
+    def get_artist(self, urn):
         with self.driver.session() as session:
             artist = session.write_transaction(self._get_artist, urn)
             return artist
 
-    def get_print_feat(self, track_id, track_name, artist1_urn, artist2_urn):
+    def get_feat(self, track_id, track_name, artist1_urn, artist2_urn):
         with self.driver.session() as session:
             feat = session.write_transaction(self._get_feat, track_id, track_name, artist1_urn, artist2_urn)
             return feat
@@ -132,11 +132,11 @@ class Neo4JHandler:
 
 if __name__ == "__main__":
     graph = Neo4JHandler("bolt://localhost:7687", "neo4j", "root")
-    graph.create_print_artist("La Fouine", 1, 37)
-    graph.create_print_artist("Booba", 2, 86)
-    graph.get_print_artist(1)
-    graph.create_print_feat(1, 2, "abcd", "Reste en chien", "01/01/2020")
-    graph.get_print_feat("abcd", "Reste en chen", 1, 2)
+    graph.create_artist("La Fouine", 1, 37)
+    graph.create_artist("Booba", 2, 86)
+    graph.get_artist(1)
+    graph.create_feat(1, 2, "abcd", "Reste en chien", "01/01/2020")
+    graph.get_feat("abcd", "Reste en chen", 1, 2)
     graph.merge_genre(genre="Rap")
     graph.set_genre_artist(artist_urn=1, genre_name="Rap")
     graph.close()
