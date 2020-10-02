@@ -24,15 +24,30 @@ class Neo4JHandler:
             genre = session.write_transaction(self._merge_genre, genre)
             return genre
 
+    def merge_label(self, label):
+        with self.driver.session() as session:
+            label = session.write_transaction(self._merge_label, label)
+            return label
+
     def set_genre_artist(self, genre_name, artist_urn):
         with self.driver.session() as session:
             artist_genre = session.write_transaction(self._set_genre_artist, genre_name, artist_urn)
             return artist_genre
 
+    def set_label_artist(self, label_name, artist_urn, album_date):
+        with self.driver.session() as session:
+            artist_label = session.write_transaction(self._set_label_artist, label_name, artist_urn, album_date)
+            return artist_label
+
     def get_genre_artist(self, genre_name, artist_urn):
         with self.driver.session() as session:
             artist_genre = session.write_transaction(self._get_genre_artist, genre_name, artist_urn)
             return artist_genre
+
+    def get_label_artist(self, label_name, artist_urn, album_date):
+        with self.driver.session() as session:
+            artist_label = session.write_transaction(self._get_label_artist, label_name, artist_urn, album_date)
+            return artist_label
 
     def get_artist(self, urn):
         with self.driver.session() as session:
@@ -43,6 +58,11 @@ class Neo4JHandler:
         with self.driver.session() as session:
             feat = session.write_transaction(self._get_feat, track_id, track_name, artist1_urn, artist2_urn)
             return feat
+
+    def get_unscraped_artist(self, scraped_artists_urn_list, genre_names_list):
+        with self.driver.session() as session:
+            artist = session.write_transaction(self._get_unscraped_artist, scraped_artists_urn_list, genre_names_list)
+            return artist
 
     @staticmethod
     def _create_artist(tx, name, urn, popularity):
@@ -107,6 +127,15 @@ class Neo4JHandler:
         return [row[0] for row in result]
 
     @staticmethod
+    def _merge_label(tx, label):
+        result = tx.run(
+            "MERGE (l:Label {name: $label}) "
+            "RETURN l.name + ' merged.'",
+            label=label
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
     def _set_genre_artist(tx, genre_name, artist_urn):
         result = tx.run(
             "MATCH (g:Genre), (a:Artist) "
@@ -129,6 +158,42 @@ class Neo4JHandler:
         )
         return [row[0] for row in result]
 
+    @staticmethod
+    def _set_label_artist(tx, label_name, artist_urn, album_date):
+        result = tx.run(
+            "MATCH (l:Label), (a:Artist) "
+            "WHERE a.urn = $artist_urn AND l.name = $label_name "
+            "CREATE (a) -[r:LABEL {date: $album_date}]-> (l) "
+            "RETURN a.name + ' linked to label ' + l.name ",
+            artist_urn=artist_urn,
+            label_name=label_name,
+            album_date=album_date
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    def _get_label_artist(tx, label_name, artist_urn, album_date):
+        result = tx.run(
+            "MATCH (l:Label) -[r:LABEL {date: $album_date}]- (a:Artist) "
+            "WHERE a.urn = $artist_urn AND l.name = $label_name "
+            "RETURN l.name, a.name, r.album_date ",
+            artist_urn=artist_urn,
+            label_name=label_name,
+            album_date=album_date
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    def _get_unscraped_artist(tx, scraped_artists_urn_list, genre_names_list):
+        result = tx.run(
+            "MATCH (a:Artist) -[r:GENRE]- (g:Genre) "
+            "WHERE a.urn NOT IN $scraped_artists_urn_list AND g.name IN $genre_names_list "
+            "RETURN a.urn LIMIT 1 ",
+            scraped_artists_urn_list=scraped_artists_urn_list,
+            genre_names_list=genre_names_list
+        )
+        return [row[0] for row in result]
+
 
 if __name__ == "__main__":
     graph = Neo4JHandler("bolt://localhost:7687", "neo4j", "root")
@@ -139,4 +204,8 @@ if __name__ == "__main__":
     graph.get_feat("abcd", "Reste en chen", 1, 2)
     graph.merge_genre(genre="Rap")
     graph.set_genre_artist(artist_urn=1, genre_name="Rap")
+    graph.merge_label(label="92i")
+    graph.set_label_artist(label_name="92i", artist_urn=2, album_date="01/01/2020")
+    graph.get_label_artist(label_name="92i", artist_urn=2, album_date="01/01/2020")
+    unscraped_artist = graph.get
     graph.close()

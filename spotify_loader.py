@@ -5,6 +5,7 @@ from pprint import pprint
 from history import check_album_is_scraped, write_scraped_album
 
 logger = logging.getLogger('spotify_loader')
+logger.propagate = False
 logging.basicConfig(level='INFO')
 
 
@@ -91,38 +92,14 @@ class SpotifyLoader:
         albums_info = []
         for album in albums:
             album_urn = album['id']
+            album_label = self.sp.album(album_urn)['label']
+            album['label'] = album_label
             logger.info("Scraping album %s from artist %s.", album_urn, artist['id'])
             name = album['name'].lower()
             if name not in unique:
                 unique.add(name)
                 albums_info.append(album)
         return albums_info
-
-    # def get_artist_ft_tracks(self, artist, scraped_album_csv='scraped_albums.csv'):
-    #     albums = []
-    #     results = self.sp.artist_albums(artist['id'])
-    #     albums.extend(results['items'])
-    #     artist_ft_info = []
-    #     while results['next']:
-    #         results = self.sp.next(results)
-    #         albums.extend(results['items'])
-    #     unique = set()  # skip duplicate albums
-    #     for album in albums:
-    #         album_urn = album['id']
-    #         logger.info("Scraping album %s", album_urn)
-    #         if not check_album_is_scraped(scraped_album_csv, album_urn):
-    #             name = album['name'].lower()
-    #             if name not in unique:
-    #                 unique.add(name)
-    #                 album_ft_info = self.get_album_ft_tracks(album)
-    #                 if album_ft_info:
-    #                     artist_ft_info.append(album_ft_info)
-    #             write_scraped_album(scraped_albums_csv='scraped_albums.csv', album_urn=album_urn)
-    #             logger.info('Album %s appended to scraped albums.', album_urn)
-    #         else:
-    #             logger.info('Album %s already present in scraped albums.', album_urn)
-    #     if len(artist_ft_info) > 0:
-    #         return artist_ft_info
 
     def main_test(self, artist):
         artist = self.get_artist_by_name(artist)

@@ -1,12 +1,14 @@
 from itertools import combinations
 
-from history import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album
+from history import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album, \
+    get_scraped_artists
 from neo4j_handler import Neo4JHandler
 from spotify_loader import SpotifyLoader
 import logging
 from pprint import pprint
 
 logger = logging.getLogger('database')
+logger.propagate = False
 logging.basicConfig(level='INFO')
 
 
@@ -27,6 +29,17 @@ class Database:
             password="root"
         )
 
+    rap_genre_names = ['rap francais', 'hip hop français']
+    scraped_artists_urn_list = get_scraped_artists(scraped_artist_csv='scraped_artists.csv')
+
+    def find_next_artist(self, scraped_artists_urn_list, rap_genre_names):
+        artist_urn = self.graph.get_unscraped_artist(
+            scraped_artists_urn_list=scraped_artists_urn_list,
+            genre_names_list=rap_genre_names
+        )
+        logger.info('Artist %s is next to be scraped', artist_urn)
+        return artist_urn
+
     def create_from_artist(self, scraped_artist_csv, scraped_album_csv, artist_urn):
         logger.info('===== Starting feat scraping for every album where artist %s appears =====', artist_urn)
         artist = self.spotify.get_artist_by_id(artist_urn)
@@ -37,6 +50,9 @@ class Database:
             for album in albums:
                 if album:
                     if not check_album_is_scraped(scraped_album_csv=scraped_album_csv, album_urn=album['id']):
+
+                        # Merge album label and links
+                        self.graph.merge_label(label=album['label'])
 
                         # Get album's featuring info
                         album_feat_info = self.spotify.get_album_ft_tracks(album)
@@ -59,6 +75,22 @@ class Database:
                                         popularity = artist_object['artist_popularity']
                                         self.graph.create_artist(name, urn, popularity)
                                         logger.info('Artist %s (%s) did not exist. Created in DB', name, urn)
+
+                                        # Create artist-label link if needed
+                                        if not self.graph.get_label_artist(
+                                                label_name=album['label'],
+                                                album_date=album['release_date'],
+                                                artist_urn=urn
+                                        ):
+                                            self.graph.set_label_artist(
+                                                label_name=album['label'],
+                                                album_date=album['release_date'],
+                                                artist_urn=urn
+                                            )
+                                            logger.info(
+                                                'Artist %s linked to label %s at date %s',
+                                                urn, album['label'], album['release_date']
+                                            )
 
                                         # Merge and link artists' genres
                                         artist_genres = artist_object['artist_genres']
@@ -117,5 +149,12 @@ if __name__ == "__main__":
     )
     # db.create_from_artist(scraped_artist_csv='scraped_artists.csv', artist_urn="58wXmynHaAWI5hwlPZP3qL")  # Booba
     # db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "76Pl0epAMXVXJspaSuz8im")  # Freeze Corleone
-    db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "28gNT5KBp7IjEOQoevXf9N")  # Camilo
-    # db.create_from_artist('scraped_artists.csv', "6Te49r3A6f5BiIgBRxH7FH")  # Ninho
+    # db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "28gNT5KBp7IjEOQoevXf9N")  # Camilo
+    # db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "3NH8t45zOTqzlZgBvZRjvB")  # PNL
+    # db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "4LXBc13z5EWsc5N32bLxfH")  # Nekfeu
+    db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "6Te49r3A6f5BiIgBRxH7FH")  # Ninho
+    # Leto, Niska, 13Block, Bolemvn, Maes, Jok'Air, Hamza, Sch, Jul, Rohff, La fouine,
+
+    # TODO:
+    # Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
+    # Améliorer vitesse d'exécution (multihtreading ? moins de requêtes à Spotify / à la DB ?)
