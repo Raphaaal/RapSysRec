@@ -1,6 +1,16 @@
 import csv
 
 
+def get_scraped_artists(scraped_artist_csv):
+    with open(scraped_artist_csv, 'r', newline='') as f:
+        reader = csv.reader(f)
+        data = list(reader)
+        result = []
+        for elt in data:
+            result.append(elt[0])
+        return result
+
+
 def check_artist_is_scraped(scraped_artist_csv, artist_urn):
     with open(scraped_artist_csv, 'r', newline='') as f:
         reader = csv.reader(f)

@@ -187,7 +187,7 @@ class Neo4JHandler:
     def _get_unscraped_artist(tx, scraped_artists_urn_list, genre_names_list):
         result = tx.run(
             "MATCH (a:Artist) -[r:GENRE]- (g:Genre) "
-            "WHERE a.urn NOT IN $scraped_artists_urn_list AND g.name IN $genre_names_list "
+            "WHERE NOT a.urn IN $scraped_artists_urn_list AND g.name IN $genre_names_list "
             "RETURN a.urn LIMIT 1 ",
             scraped_artists_urn_list=scraped_artists_urn_list,
             genre_names_list=genre_names_list
