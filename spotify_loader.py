@@ -82,7 +82,7 @@ class SpotifyLoader:
     
     def get_artist_albums(self, artist):
         albums = []
-        results = self.sp.artist_albums(artist['id'])
+        results = self.sp.artist_albums(artist['id'], album_type=['album', 'single', 'appears_on'])
         albums.extend(results['items'])
         while results['next']:
             results = self.sp.next(results)

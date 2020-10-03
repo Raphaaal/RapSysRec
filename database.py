@@ -48,12 +48,13 @@ class Database:
                 if album:
                     if not check_album_is_scraped(scraped_album_csv=scraped_album_csv, album_urn=album['id']):
 
-                        # Merge album label and links
-                        self.graph.merge_label(label=album['label'])
-
                         # Get album's featuring info
                         album_feat_info = self.spotify.get_album_ft_tracks(album)
                         if album_feat_info:
+
+                            # Merge album label
+                            self.graph.merge_label(label=album['label'])
+
                             for feat in album_feat_info:
 
                                 # Get featuring artists
@@ -136,13 +137,19 @@ class Database:
         else:
             logger.info('Artist %s already present in scraped artists.', artist_urn)
 
-    def expend_from_artist(self, artist_urn, scraped_artists_csv, scraped_albums_csv, nb_hops):
+    def expend_from_artist(self, artist_urn, scraped_artists_csv, scraped_albums_csv, nb_hops, reset=False):
 
-        # Clear scraping history files
-        truncate_file(scraped_artists_csv)
-        truncate_file(scraped_albums_csv)
+        if reset:
+            # Clear scraping history files and DB
+            truncate_file(scraped_artists_csv)
+            truncate_file(scraped_albums_csv)
+            self.graph.truncate()
+            logger.info("Truncated DB and history files.")
 
         # Initiate with first artist scraping
+        logger.info("================================")
+        logger.info("=========== HOP #0 =============")
+        logger.info("================================")
         self.create_from_artist(
             scraped_artists_csv,
             scraped_albums_csv,
@@ -150,7 +157,7 @@ class Database:
         )
 
         # Hop on and scrape on
-        for i in range(nb_hops - 1):
+        for i in range(1, nb_hops):
             logger.info("================================")
             logger.info("========== HOP # %s ============", str(i))
             logger.info("================================")
@@ -174,10 +181,11 @@ if __name__ == "__main__":
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
     db.expend_from_artist(
-        artist_urn="3NH8t45zOTqzlZgBvZRjvB",
+        artist_urn="5gs4Sm2WQUkcGeikMcVHbh",
         scraped_artists_csv="scraped_artists.csv",
         scraped_albums_csv="scraped_albums.csv",
-        nb_hops=2
+        nb_hops=3,
+        reset=True
     )
 
     # TODO:

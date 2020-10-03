@@ -69,6 +69,10 @@ class Neo4JHandler:
             artists = session.write_transaction(self._get_linked_artists, artist_urn)
             return artists
 
+    def truncate(self):
+        with self.driver.session() as session:
+            session.write_transaction(self._truncate)
+
     @staticmethod
     def _create_artist(tx, name, urn, popularity):
         result = tx.run(
@@ -205,6 +209,14 @@ class Neo4JHandler:
             "MATCH (a:Artist {urn: $artist_urn}) -[r:FEAT]- (a2:Artist) "
             "RETURN DISTINCT a2.urn ",
             artist_urn=artist_urn,
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    def _truncate(tx):
+        result = tx.run(
+            "MATCH (n)  "
+            "DETACH DELETE n "
         )
         return [row[0] for row in result]
 
