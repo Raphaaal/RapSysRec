@@ -94,7 +94,7 @@ class SpotifyLoader:
             album_urn = album['id']
             album_label = self.sp.album(album_urn)['label']
             album['label'] = album_label
-            logger.info("Scraping album %s from artist %s.", album_urn, artist['id'])
+            logger.info("Scraping album %s with artist %s.", album_urn, artist['id'])
             name = album['name'].lower()
             if name not in unique:
                 unique.add(name)
