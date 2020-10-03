@@ -38,7 +38,7 @@ class Database:
         return artist_urn
 
     def create_from_artist(self, scraped_artist_csv, scraped_album_csv, artist_urn):
-        logger.info('===== Starting feat scraping for every album where artist %s appears =====', artist_urn)
+        logger.info('Starting feat scraping for every album where artist %s appears.', artist_urn)
         artist = self.spotify.get_artist_by_id(artist_urn)
         if not check_artist_is_scraped(scraped_artist_csv, artist_urn):
 
@@ -74,22 +74,6 @@ class Database:
                                         self.graph.create_artist(name, urn, popularity)
                                         logger.info('Artist %s (%s) did not exist. Created in DB', name, urn)
 
-                                        # Create artist-label link if needed
-                                        if not self.graph.get_label_artist(
-                                                label_name=album['label'],
-                                                album_date=album['release_date'],
-                                                artist_urn=urn
-                                        ):
-                                            self.graph.set_label_artist(
-                                                label_name=album['label'],
-                                                album_date=album['release_date'],
-                                                artist_urn=urn
-                                            )
-                                            logger.info(
-                                                'Artist %s linked to label %s at date %s',
-                                                urn, album['label'], album['release_date']
-                                            )
-
                                         # Merge and link artists' genres
                                         artist_genres = artist_object['artist_genres']
                                         for genre in artist_genres:
@@ -99,6 +83,22 @@ class Database:
                                                 if not already_linked_artist_genres:
                                                     self.graph.set_genre_artist(genre_name=genre, artist_urn=urn)
                                                     logger.info('Artist %s linked to genre %s.', urn, genre)
+
+                                    # Create artist-label link if needed
+                                    if not self.graph.get_label_artist(
+                                            label_name=album['label'],
+                                            album_date=album['release_date'],
+                                            artist_urn=ft_artist['artist_id']
+                                    ):
+                                        self.graph.set_label_artist(
+                                            label_name=album['label'],
+                                            album_date=album['release_date'],
+                                            artist_urn=ft_artist['artist_id']
+                                        )
+                                        logger.info(
+                                            'Artist %s linked to label %s at date %s',
+                                            ft_artist['artist_id'], album['label'], album['release_date']
+                                        )
 
                                 # Create feat if needed
                                 feat_test = False
@@ -147,9 +147,9 @@ class Database:
             logger.info("Truncated DB and history files.")
 
         # Initiate with first artist scraping
-        logger.info("================================")
-        logger.info("=========== HOP #0 =============")
-        logger.info("================================")
+        logger.info("==========================================================================")
+        logger.info("=                                  HOP #1                                =")
+        logger.info("==========================================================================")
         self.create_from_artist(
             scraped_artists_csv,
             scraped_albums_csv,
@@ -158,9 +158,9 @@ class Database:
 
         # Hop on and scrape on
         for i in range(1, nb_hops):
-            logger.info("================================")
-            logger.info("========== HOP # %s ============", str(i))
-            logger.info("================================")
+            logger.info("==========================================================================")
+            logger.info("=                                  HOP #%s                                =", str(i+1))
+            logger.info("==========================================================================")
             scraped_artists = get_scraped_artists(scraped_artists_csv)
             for artist in scraped_artists:
                 linked_artists = self.graph.get_linked_artists(artist_urn=artist)
@@ -189,7 +189,10 @@ if __name__ == "__main__":
     )
 
     # TODO:
+
     # Algo : Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
+    # -> Besoin de dupliquer les arcs (car pas de prise en compte du weight dans les algos GDS)
+
     # Améliorer vitesse d'exécution (multihtreading ? moins de requêtes à Spotify / à la DB ?)
-    # Limiter aux albums produits par l'artist ? pas les "appears on" pour éviter les feats en doublon ?
-    # Proposer plutot de rentrer un artiste et ensuite on scrape tous ses artistes à une distance max (ex: 3) puis l'algo tourne sur cet artiste avec cette distance max
+
+    # Modulariser pour plus de clarté
