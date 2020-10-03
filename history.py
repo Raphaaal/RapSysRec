@@ -1,6 +1,11 @@
 import csv
 
 
+def truncate_file(file_path):
+    f = open(file_path, "w+")
+    f.close()
+
+
 def get_scraped_artists(scraped_artist_csv):
     with open(scraped_artist_csv, 'r', newline='') as f:
         reader = csv.reader(f)

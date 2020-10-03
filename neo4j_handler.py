@@ -64,6 +64,11 @@ class Neo4JHandler:
             artist = session.write_transaction(self._get_unscraped_artist, scraped_artists_urn_list, genre_names_list)
             return artist
 
+    def get_linked_artists(self, artist_urn):
+        with self.driver.session() as session:
+            artists = session.write_transaction(self._get_linked_artists, artist_urn)
+            return artists
+
     @staticmethod
     def _create_artist(tx, name, urn, popularity):
         result = tx.run(
@@ -194,6 +199,15 @@ class Neo4JHandler:
         )
         return [row[0] for row in result]
 
+    @staticmethod
+    def _get_linked_artists(tx, artist_urn):
+        result = tx.run(
+            "MATCH (a:Artist {urn: $artist_urn}) -[r:FEAT]- (a2:Artist) "
+            "RETURN DISTINCT a2.urn ",
+            artist_urn=artist_urn,
+        )
+        return [row[0] for row in result]
+
 
 if __name__ == "__main__":
     graph = Neo4JHandler("bolt://localhost:7687", "neo4j", "root")
@@ -207,5 +221,5 @@ if __name__ == "__main__":
     graph.merge_label(label="92i")
     graph.set_label_artist(label_name="92i", artist_urn=2, album_date="01/01/2020")
     graph.get_label_artist(label_name="92i", artist_urn=2, album_date="01/01/2020")
-    unscraped_artist = graph.get
+    print(graph.get_linked_artists(1))
     graph.close()

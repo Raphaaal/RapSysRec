@@ -1,7 +1,7 @@
 from itertools import combinations
 from genres import get_rap_genre_names
 from history import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album, \
-    get_scraped_artists
+    get_scraped_artists, truncate_file
 from neo4j_handler import Neo4JHandler
 from spotify_loader import SpotifyLoader
 import logging
@@ -136,34 +136,52 @@ class Database:
         else:
             logger.info('Artist %s already present in scraped artists.', artist_urn)
 
+    def expend_from_artist(self, artist_urn, scraped_artists_csv, scraped_albums_csv, nb_hops):
+
+        # Clear scraping history files
+        truncate_file(scraped_artists_csv)
+        truncate_file(scraped_albums_csv)
+
+        # Initiate with first artist scraping
+        self.create_from_artist(
+            scraped_artists_csv,
+            scraped_albums_csv,
+            artist_urn
+        )
+
+        # Hop on and scrape on
+        for i in range(nb_hops - 1):
+            logger.info("================================")
+            logger.info("========== HOP # %s ============", str(i))
+            logger.info("================================")
+            scraped_artists = get_scraped_artists(scraped_artists_csv)
+            for artist in scraped_artists:
+                linked_artists = self.graph.get_linked_artists(artist_urn=artist)
+                for artist_urn in linked_artists:
+                    self.create_from_artist(
+                        scraped_artists_csv,
+                        scraped_albums_csv,
+                        artist_urn
+                    )
+
 
 if __name__ == "__main__":
+
     db = Database(
         neo4j_user="neo4j",
         neo4j_password="root",
         spotify_client_id="28d60111ea634effb71f87304bed9285",
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
-    rap_genres = get_rap_genre_names()
-    next_artist_urn = "6Te49r3A6f5BiIgBRxH7FH"  # Ninho
-
-    while next_artist_urn:
-        db.create_from_artist(
-            scraped_artist_csv='scraped_artists.csv',
-            scraped_album_csv='scraped_albums.csv',
-            artist_urn=next_artist_urn
-        )
-        scraped_artists_list = get_scraped_artists(scraped_artist_csv='scraped_artists.csv')
-        next_artist_urn = db.find_next_artist(scraped_artists_urn_list=scraped_artists_list, rap_genre_names=rap_genres)
+    db.expend_from_artist(
+        artist_urn="3NH8t45zOTqzlZgBvZRjvB",
+        scraped_artists_csv="scraped_artists.csv",
+        scraped_albums_csv="scraped_albums.csv",
+        nb_hops=2
+    )
 
     # TODO:
-    # Leto, Niska, 13Block, Bolemvn, Maes, Jok'Air, Hamza, Sch, Jul, Rohff, La fouine,
-    # Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
+    # Algo : Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
     # Améliorer vitesse d'exécution (multihtreading ? moins de requêtes à Spotify / à la DB ?)
-
-    # db.create_from_artist(scraped_artist_csv='scraped_artists.csv', artist_urn="58wXmynHaAWI5hwlPZP3qL")  # Booba
-    # db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "76Pl0epAMXVXJspaSuz8im")  # Freeze Corleone
-    # db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "28gNT5KBp7IjEOQoevXf9N")  # Camilo
-    # db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "3NH8t45zOTqzlZgBvZRjvB")  # PNL
-    # db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "4LXBc13z5EWsc5N32bLxfH")  # Nekfeu
-    # db.create_from_artist('scraped_artists.csv', 'scraped_albums.csv', "6Te49r3A6f5BiIgBRxH7FH")  # Ninho
+    # Limiter aux albums produits par l'artist ? pas les "appears on" pour éviter les feats en doublon ?
+    # Proposer plutot de rentrer un artiste et ensuite on scrape tous ses artistes à une distance max (ex: 3) puis l'algo tourne sur cet artiste avec cette distance max
