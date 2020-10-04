@@ -40,6 +40,7 @@ y = train["label"]
 classifier.fit(X, y)
 
 
+# TODO: print explicability (most important features)
 def evaluate_model(predictions, actual):
     return pd.DataFrame({
         "Measure": ["Accuracy", "Precision", "Recall"],
@@ -55,8 +56,5 @@ y_test = test["label"]
 results = evaluate_model(preds, y_test)
 print(results)
 
-hamza_ids = hamza[['node1', 'node2']]
-hamza_preds = classifier.predict(hamza.drop(columns=["node1", "node2"]))
-hamza_preds_id = pd.concat([hamza_ids, hamza_preds], axis=1)
-print(hamza_preds_id)
-
+hamza['pred'] = classifier.predict(hamza[["cn", "pa", "tn"]])
+print(hamza)
