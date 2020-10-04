@@ -1,0 +1,39 @@
+from neo4j_handler import Neo4JHandler
+import pandas as pd
+
+pd.set_option('display.float_format', lambda x: '%.3f' % x)
+
+graph = Neo4JHandler(
+    uri="bolt://localhost:7687",
+    user="neo4j",
+    password="root"
+)
+driver = graph.driver
+
+with driver.session() as session:
+    result = session.run(
+        """
+        MATCH (a:Artist)-[:FEAT_EARLY]-(b:Artist)
+        RETURN id(a) AS node1, id(b) AS node2, 1 AS label
+        """
+    )
+    train_existing_links = pd.DataFrame([dict(record) for record in result])
+
+    result = session.run(
+        """
+        MATCH (a:Artist)
+        WHERE (a)-[:FEAT_EARLY]-()
+        MATCH (a)-[:FEAT_EARLY*2..3]-(b)
+        WHERE not((a)-[:FEAT_EARLY]-(b))
+        RETURN id(a) AS node1, id(b) AS node2, 0 AS label
+        """
+    )
+    train_missing_links = pd.DataFrame([dict(record) for record in result])
+    train_missing_links = train_missing_links.drop_duplicates()
+
+training_df = train_missing_links.append(train_existing_links, ignore_index=True)
+training_df['label'] = training_df['label'].astype('category')
+
+count_class_0, count_class_1 = training_df.label.value_counts()
+print(f"Negative examples: {count_class_0}")
+print(f"Positive examples: {count_class_1}")
