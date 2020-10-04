@@ -191,7 +191,7 @@ if __name__ == "__main__":
     # TODO:
 
     # Algo : Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
-    # -> Besoin de dupliquer les arcs (car pas de prise en compte du weight dans les algos GDS)
+    # -> Besoin de dupliquer les arcs (car pas de prise en compte du weight dans les algos GDS) ou bien de faire du feature engineering a part (same_label: true / false) ?
 
     # Améliorer vitesse d'exécution (multihtreading ? moins de requêtes à Spotify / à la DB ?)
 
