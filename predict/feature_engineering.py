@@ -35,11 +35,39 @@ def apply_graphy_features(data, rel_type, driver_instance=driver):
     return pd.merge(data, features, on=["node1", "node2"])
 
 
+def apply_triangles_features(data, triangles_prop, coefficient_prop, driver_instance=driver):
+    query = """
+    UNWIND $pairs AS pair
+    MATCH (p1) WHERE id(p1) = pair.node1
+    MATCH (p2) WHERE id(p2) = pair.node2
+    RETURN pair.node1 AS node1,
+    pair.node2 AS node2,
+    apoc.coll.min([p1[$trianglesProp], p2[$trianglesProp]]) AS minTriangles,
+    apoc.coll.max([p1[$trianglesProp], p2[$trianglesProp]]) AS maxTriangles,
+    apoc.coll.min([p1[$coefficientProp], p2[$coefficientProp]]) AS minCoefficient,
+    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient
+    """
+    pairs = [{"node1": node1, "node2": node2}  for node1,node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+    "pairs": pairs,
+    "trianglesProp": triangles_prop,
+    "coefficientProp": coefficient_prop
+    }
+
+    with driver.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    return pd.merge(data, features, on=["node1", "node2"])
+
+
 def engineer_features(driver):
     # Generate train and test sets
     df_train_under = get_train_set()
     df_test_under = get_test_set()
     df_train_under = apply_graphy_features(df_train_under, "FEAT_EARLY", driver)
     df_test_under = apply_graphy_features(df_test_under, "FEAT_LATE", driver)
+    df_train_under = apply_triangles_features(df_train_under, "trianglesTrain", "coefficientTrain", driver)
+    df_test_under = apply_triangles_features(df_test_under, "trianglesTest", "coefficientTest", driver)
 
     return df_train_under, df_test_under

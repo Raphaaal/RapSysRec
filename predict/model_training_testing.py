@@ -30,7 +30,7 @@ test.drop(columns=["node1", "node2"])
 classifier = RandomForestClassifier(n_estimators=30, max_depth=10, random_state=0)
 columns = [
     "cn", "pa", "tn",  # graph features
-    # "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient", # triangle features
+    "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient", # triangle features
     # "sp", "sl" # community features
     # TODO : add features for label, nb_feats, recency, ...
 ]
@@ -41,6 +41,7 @@ classifier.fit(X, y)
 
 
 # TODO: print explicability (most important features)
+# TODO: create a confidence score to be able to rank prediction of future featurings
 def evaluate_model(predictions, actual):
     return pd.DataFrame({
         "Measure": ["Accuracy", "Precision", "Recall"],
@@ -56,5 +57,8 @@ y_test = test["label"]
 results = evaluate_model(preds, y_test)
 print(results)
 
-hamza['pred'] = classifier.predict(hamza[["cn", "pa", "tn"]])
+hamza['pred'] = classifier.predict(hamza[[
+    "cn", "pa", "tn",
+    "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient"
+]])
 print(hamza)
