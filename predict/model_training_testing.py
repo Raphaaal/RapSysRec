@@ -22,7 +22,6 @@ train, test = engineer_features(driver)
 hamza_train = train.loc[(train['node1'] == 111) | (train['node2'] == 111)]
 hamza_test = test.loc[(test['node1'] == 111) | (train['node2'] == 111)]
 hamza = hamza_train.append(hamza_test, ignore_index=True)
-print(hamza_test)
 
 train.drop(columns=["node1", "node2"])
 test.drop(columns=["node1", "node2"])
@@ -32,7 +31,7 @@ columns = [
     "cn", "pa", "tn",  # graph features
     "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",  # triangle features
     "sp", "sl"  # community features
-    # TODO : add features for label, nb_feats, recency, ...
+    # TODO : add features for label, nb_feats (i.e. duplicate the relationships?), recency, ...
 ]
 
 X = train[columns]
@@ -41,6 +40,14 @@ classifier.fit(X, y)
 
 
 # TODO: print explicability (most important features)
+def feature_importance(columns, classifier):
+    features = list(zip(columns, classifier.feature_importances_))
+    sorted_features = sorted(features, key=lambda x: x[1] * -1)
+    keys = [value[0] for value in sorted_features]
+    values = [value[1] for value in sorted_features]
+    return pd.DataFrame(data={'feature': keys, 'value': values})
+
+
 # TODO: create a confidence score to be able to rank prediction of future featurings
 def evaluate_model(predictions, actual):
     return pd.DataFrame({
@@ -56,6 +63,9 @@ y_test = test["label"]
 
 results = evaluate_model(preds, y_test)
 print(results)
+
+feature_expl = feature_importance(columns, classifier)
+print(feature_expl)
 
 hamza['pred'] = classifier.predict(hamza[[
     "cn", "pa", "tn",
