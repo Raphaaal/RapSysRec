@@ -30,8 +30,8 @@ test.drop(columns=["node1", "node2"])
 classifier = RandomForestClassifier(n_estimators=30, max_depth=10, random_state=0)
 columns = [
     "cn", "pa", "tn",  # graph features
-    "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient", # triangle features
-    # "sp", "sl" # community features
+    "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",  # triangle features
+    "sp", "sl"  # community features
     # TODO : add features for label, nb_feats, recency, ...
 ]
 
@@ -59,6 +59,7 @@ print(results)
 
 hamza['pred'] = classifier.predict(hamza[[
     "cn", "pa", "tn",
-    "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient"
+    "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",
+    "sp", "sl"
 ]])
 print(hamza)

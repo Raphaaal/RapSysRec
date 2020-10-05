@@ -10,6 +10,7 @@ graph = Neo4JHandler(
 )
 driver = graph.driver
 
+
 def get_train_set():
     with driver.session() as session:
         # Get positive links (existing)

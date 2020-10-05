@@ -54,7 +54,31 @@ def apply_triangles_features(data, triangles_prop, coefficient_prop, driver_inst
     "coefficientProp": coefficient_prop
     }
 
-    with driver.session() as session:
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    return pd.merge(data, features, on=["node1", "node2"])
+
+
+def apply_community_features(data, partition_prop, louvain_prop, driver_instance=driver):
+    query = """
+    UNWIND $pairs AS pair
+    MATCH (p1) WHERE id(p1) = pair.node1
+    MATCH (p2) WHERE id(p2) = pair.node2
+    RETURN pair.node1 AS node1,
+    pair.node2 AS node2,
+    gds.alpha.linkprediction.sameCommunity(p1, p2, $partitionProp) AS sp,
+    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl
+    """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+    "pairs": pairs,
+    "partitionProp": partition_prop,
+    "louvainProp": louvain_prop
+    }
+
+    with driver_instance.session() as session:
         result = session.run(query, params)
         features = pd.DataFrame([dict(record) for record in result])
 
@@ -69,5 +93,7 @@ def engineer_features(driver):
     df_test_under = apply_graphy_features(df_test_under, "FEAT_LATE", driver)
     df_train_under = apply_triangles_features(df_train_under, "trianglesTrain", "coefficientTrain", driver)
     df_test_under = apply_triangles_features(df_test_under, "trianglesTest", "coefficientTest", driver)
+    df_train_under = apply_community_features(df_train_under, "partitionTrain", "louvainTrain", driver)
+    df_test_under = apply_community_features(df_test_under, "partitionTest", "louvainTest", driver)
 
     return df_train_under, df_test_under

@@ -8,7 +8,7 @@ graph = Neo4JHandler(
 driver = graph.driver
 
 query = """
-CALL gds.localClusteringCoefficient.write({
+CALL gds.louvain.stream({
   nodeProjection: 'Artist',
   relationshipProjection: {
     FEAT_EARLY: {
@@ -16,15 +16,18 @@ CALL gds.localClusteringCoefficient.write({
       orientation: 'UNDIRECTED'
     }
   },
-  writeProperty: 'coefficientTrain'
-});
+  includeIntermediateCommunities: true
+})
+YIELD nodeId, communityId, intermediateCommunityIds
+WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
+SET node.louvainTrain = smallestCommunity;
 """
 
 with driver.session() as session:
-    result = session.run(query)
+    session.run(query)
 
 query = """
-CALL gds.localClusteringCoefficient.write({
+CALL gds.louvain.stream({
   nodeProjection: 'Artist',
   relationshipProjection: {
     FEAT_LATE: {
@@ -32,9 +35,12 @@ CALL gds.localClusteringCoefficient.write({
       orientation: 'UNDIRECTED'
     }
   },
-  writeProperty: 'coefficientTest'
-});
+  includeIntermediateCommunities: true
+})
+YIELD nodeId, communityId, intermediateCommunityIds
+WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
+SET node.louvainTest = smallestCommunity;
 """
 
 with driver.session() as session:
-    result = session.run(query)
+    session.run(query)
