@@ -87,7 +87,7 @@ def apply_community_features(data, partition_prop, louvain_prop, driver_instance
 
 def engineer_features(driver):
     # Generate train and test sets
-    df_train_under = get_train_set() # TODO: try a different year split
+    df_train_under = get_train_set()  # TODO: try a different year split
     df_test_under = get_test_set()
     df_train_under = apply_graphy_features(df_train_under, "FEAT_EARLY", driver)
     df_test_under = apply_graphy_features(df_test_under, "FEAT_LATE", driver)

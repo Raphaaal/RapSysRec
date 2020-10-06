@@ -1,4 +1,5 @@
 from neo4j import GraphDatabase
+import pandas as pd
 
 
 class Neo4JHandler:
@@ -72,6 +73,18 @@ class Neo4JHandler:
     def truncate(self):
         with self.driver.session() as session:
             session.write_transaction(self._truncate)
+
+    def get_artists_pdf_from_ids(self, artists_id_list):
+        query = """
+        MATCH (a: Artist)
+        WHERE ID(a) IN $artists_id_list
+        RETURN a.name
+        """
+        params = {"artists_id_list": artists_id_list}
+        with self.driver.session() as session:
+            result = session.run(query, params)
+            artists_names = pd.DataFrame([dict(record) for record in result])
+        return artists_names
 
     @staticmethod
     def _create_artist(tx, name, urn, popularity):
@@ -223,15 +236,16 @@ class Neo4JHandler:
 
 if __name__ == "__main__":
     graph = Neo4JHandler("bolt://localhost:7687", "neo4j", "root")
-    graph.create_artist("La Fouine", 1, 37)
-    graph.create_artist("Booba", 2, 86)
-    graph.get_artist(1)
-    graph.create_feat(1, 2, "abcd", "Reste en chien", "01/01/2020")
-    graph.get_feat("abcd", "Reste en chen", 1, 2)
-    graph.merge_genre(genre="Rap")
-    graph.set_genre_artist(artist_urn=1, genre_name="Rap")
-    graph.merge_label(label="92i")
-    graph.set_label_artist(label_name="92i", artist_urn=2, album_date="01/01/2020")
-    graph.get_label_artist(label_name="92i", artist_urn=2, album_date="01/01/2020")
-    print(graph.get_linked_artists(1))
+    # graph.create_artist("La Fouine", 1, 37)
+    # graph.create_artist("Booba", 2, 86)
+    # graph.get_artist(1)
+    # graph.create_feat(1, 2, "abcd", "Reste en chien", "01/01/2020")
+    # graph.get_feat("abcd", "Reste en chen", 1, 2)
+    # graph.merge_genre(genre="Rap")
+    # graph.set_genre_artist(artist_urn=1, genre_name="Rap")
+    # graph.merge_label(label="92i")
+    # graph.set_label_artist(label_name="92i", artist_urn=2, album_date="01/01/2020")
+    # graph.get_label_artist(label_name="92i", artist_urn=2, album_date="01/01/2020")
+    # print(graph.get_linked_artists(1))
+    print(graph.get_artists_pdf_from_ids(artists_id_list=[237, 111]))
     graph.close()
