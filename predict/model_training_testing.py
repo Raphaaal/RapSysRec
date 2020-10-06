@@ -50,13 +50,13 @@ def display_predictions(pdf, concerned_artist_id):
             password="root"
         )
 
-    def filter_pdf(row, concerned_artist_id):
-        if row['node1'] == concerned_artist_id:
+    def filter_pdf(row, concerned_artist=concerned_artist_id):
+        if row['node1'] == concerned_artist:
             return row['node2']
         else:
             return row['node1']
 
-    pdf['id'] = pdf.apply(lambda row: filter_pdf(row), axis=1)
+    pdf['id'] = pdf.apply(lambda row: filter_pdf(row, concerned_artist_id), axis=1)
     pdf_display = pdf[["id", "pred", "label", "pred_proba_0", "pred_proba_1"]]
     ft_artists_names = graph.get_artists_pdf_from_ids(pdf['node2'].tolist())
     pdf_display['name'] = np.asarray(ft_artists_names)
