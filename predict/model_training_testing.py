@@ -1,4 +1,3 @@
-from predict.feature_engineering import engineer_features
 from neo4j_handler import Neo4JHandler
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -6,16 +5,14 @@ from sklearn.metrics import recall_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import accuracy_score
 import numpy as np
-
+from predict.feature_engineering import engineer_features, get_artist_specific_pdf
+import logging
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
-
-def artist_specific_pdf(train, test, artist_node_id):
-    pdf_train = train.loc[(train['node1'] == artist_node_id) | (train['node2'] == artist_node_id)]
-    pdf_test = test.loc[(test['node1'] == artist_node_id) | (train['node2'] == artist_node_id)]
-    result = pdf_train.append(pdf_test, ignore_index=True)
-    return result
+logger = logging.getLogger('model_training_testing')
+# logger.propagate = False
+logging.basicConfig(level='INFO')
 
 
 # TODO: print explicability (most important features)
@@ -24,22 +21,26 @@ def feature_importance(columns, classifier):
     sorted_features = sorted(features, key=lambda x: x[1] * -1)
     keys = [value[0] for value in sorted_features]
     values = [value[1] for value in sorted_features]
+    logger.info("Feature importance computed.")
     return pd.DataFrame(data={'feature': keys, 'value': values})
 
 
 # TODO: use a confidence interval?
 def evaluate_model(predictions, actual):
-    return pd.DataFrame({
+    eval_pdf = pd.DataFrame({
         "Measure": ["Accuracy", "Precision", "Recall"],
         "Score": [accuracy_score(actual, predictions),
                   precision_score(actual, predictions),
                   recall_score(actual, predictions)]
     })
+    logger.info("Model evalution computed.")
+    return eval_pdf
 
 
 def make_predictions(pdf, classifier, features):
     pdf[['pred_proba_0', 'pred_proba_1']] = classifier.predict_proba(pdf[features])
     pdf['pred'] = classifier.predict(pdf[features])
+    logger.info("Predictions computed.")
     return pdf
 
 
@@ -80,7 +81,7 @@ if __name__ == '__main__':
     # Artist specific train / test split
     # TODO: some pairs may not be sampled (for ex: Vald-Hamza) and they will not be proposed in the predictions at the end
     # -> Predict on all the pairs in the 2nd and 3rd hops of the considered artist (at the end)
-    hamza = artist_specific_pdf(train, test, artist_node_id=111)
+    hamza = get_artist_specific_pdf(artist_urn='5gs4Sm2WQUkcGeikMcVHbh', driver=driver)
 
     # Build classifier
     # TODO: try a different classifier / hyper parameters

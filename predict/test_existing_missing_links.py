@@ -1,5 +1,10 @@
 from neo4j_handler import Neo4JHandler
 import pandas as pd
+import logging
+
+logger = logging.getLogger('feature_engineering')
+# logger.propagate = False
+logging.basicConfig(level='INFO')
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
@@ -39,7 +44,9 @@ def get_test_set():
 
     testing_df = test_missing_links.append(test_existing_links, ignore_index=True)
     testing_df['label'] = testing_df['label'].astype('category')
+    logger.info("Testing Pandas DataFrame computed.")
 
+    # Counts
     count_class_0, count_class_1 = testing_df.label.value_counts()
     print(f"Negative examples: {count_class_0}")
     print(f"Positive examples: {count_class_1}")
@@ -50,6 +57,7 @@ def get_test_set():
 
     df_class_0_under = df_class_0.sample(count_class_1)
     df_test_under = pd.concat([df_class_0_under, df_class_1], axis=0)
+    logger.info("Testing Pandas DataFrame negative links downsampled.")
 
     print('Random downsampling:')
     print(df_test_under.label.value_counts())
