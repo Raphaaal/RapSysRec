@@ -7,20 +7,22 @@ graph = Neo4JHandler(
 )
 driver = graph.driver
 
-query = """
-MATCH (a: Artist)-[r:FEAT_NB]-(b: Artist)
-WHERE r.year <= 2013
-MERGE (a)-[:FEAT_EARLY {year: r.year, nb_feats: r.nb_feats}]-(b);
-"""
 
-with driver.session() as session:
-    session.run(query)
+def split_early_late(date):
+    query = """
+    MATCH (a: Artist)-[r:FEAT_NB]-(b: Artist)
+    WHERE r.year <= $date
+    MERGE (a)-[:FEAT_EARLY {year: r.year, nb_feats: r.nb_feats}]-(b);
+    """
 
-query = """
-MATCH (a: Artist)-[r:FEAT_NB]-(b: Artist)
-WHERE r.year > 2013
-MERGE (a)-[:FEAT_LATE {year: r.year, nb_feats: r.nb_feats}]-(b);
-"""
+    with driver.session() as session:
+        session.run(query, parameters={'date': date})
 
-with driver.session() as session:
-    session.run(query)
+    query = """
+    MATCH (a: Artist)-[r:FEAT_NB]-(b: Artist)
+    WHERE r.year > $date
+    MERGE (a)-[:FEAT_LATE {year: r.year, nb_feats: r.nb_feats}]-(b);
+    """
+
+    with driver.session() as session:
+        session.run(query, parameters={'date': date})
