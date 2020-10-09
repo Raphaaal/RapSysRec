@@ -44,7 +44,7 @@ def make_predictions(pdf, classifier, features):
     return pdf
 
 
-def display_predictions(pdf, concerned_artist_id):
+def get_relevant_predictions(pdf, concerned_artist_id):
     graph = Neo4JHandler(
             uri="bolt://localhost:7687",
             user="neo4j",
@@ -62,7 +62,7 @@ def display_predictions(pdf, concerned_artist_id):
     ft_artists_names = graph.get_artists_pdf_from_ids(pdf['node2'].tolist())
     pdf_display['name'] = np.asarray(ft_artists_names)
     result = pdf_display[pdf_display['label'] == 0].sort_values(["pred_proba_1"], ascending=[False])
-    print(result)
+    return result
 
 
 if __name__ == '__main__':
@@ -80,8 +80,8 @@ if __name__ == '__main__':
 
     # Artist specific train / test split
     # TODO: some pairs may not be sampled (for ex: Vald-Hamza) and they will not be proposed in the predictions at the end
-    # -> Predict on all the pairs in the 2nd and 3rd hops of the considered artist (at the end)
-    hamza = get_artist_specific_pdf(artist_urn='5gs4Sm2WQUkcGeikMcVHbh', driver=driver)
+    # -> Predict on all the pairs in the 2nd or 3rd hop of the considered artist (at the end)
+    hamza = get_artist_specific_pdf(artist_urn='5gs4Sm2WQUkcGeikMcVHbh', min_nb_cn=1.0, driver=driver)
 
     # Build classifier
     # TODO: try a different classifier / hyper parameters
@@ -92,8 +92,8 @@ if __name__ == '__main__':
     columns = [
         "cn", "pa", "tn",  # graph features
         "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",  # triangle features
-        "sp", "sl"  # community features
-
+        "sp", "sl",  # community features
+        "nb_common_labels"
     ]
     X = train[columns]
     y = train["label"]
@@ -110,6 +110,10 @@ if __name__ == '__main__':
 
     # Artist specific predictions
     hamza = make_predictions(hamza, classifier, [
-        "cn", "pa", "tn", "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient", "sp", "sl"
+        "cn", "pa", "tn",
+        "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",
+        "sp", "sl",
+        "nb_common_labels"
     ])
-    display_predictions(hamza, 111)
+    result_hamza = get_relevant_predictions(hamza, 653)
+    result_hamza.to_csv("artist_predictions.csv")

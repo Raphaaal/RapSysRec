@@ -38,3 +38,19 @@ CALL gds.triangleCount.write({
 
 with driver.session() as session:
     result = session.run(query)
+
+query = """
+CALL gds.triangleCount.write({
+  nodeProjection: 'Artist',
+  relationshipProjection: {
+    FEAT: {
+      type: 'FEAT',
+      orientation: 'UNDIRECTED'
+    }
+  },
+  writeProperty: 'triangles'
+});
+"""
+
+with driver.session() as session:
+    result = session.run(query)

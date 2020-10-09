@@ -38,3 +38,19 @@ CALL gds.localClusteringCoefficient.write({
 
 with driver.session() as session:
     result = session.run(query)
+
+query = """
+CALL gds.localClusteringCoefficient.write({
+  nodeProjection: 'Artist',
+  relationshipProjection: {
+    FEAT: {
+      type: 'FEAT',
+      orientation: 'UNDIRECTED'
+    }
+  },
+  writeProperty: 'coefficient'
+});
+"""
+
+with driver.session() as session:
+    result = session.run(query)

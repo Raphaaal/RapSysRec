@@ -19,7 +19,7 @@ graph = Neo4JHandler(
 driver = graph.driver
 
 
-def get_artist_specific_pdf(artist_urn, driver):
+def get_artist_specific_pdf(artist_urn, min_nb_cn, driver):
     logger.info("Starting to compute artist %s's Pandas DataFrame.", artist_urn)
     with driver.session() as session:
         # Get positive links (existing)
@@ -40,7 +40,9 @@ def get_artist_specific_pdf(artist_urn, driver):
             WHERE NOT ((a)-[:FEAT]-(b))
             RETURN id(a) AS node1, id(b) AS node2, 0 AS label
             """
-            , parameters={"artist_urn": artist_urn}
+            , parameters={
+                "artist_urn": artist_urn,
+            }
         )
 
         artist_missing_links = pd.DataFrame([dict(record) for record in result])
@@ -50,12 +52,15 @@ def get_artist_specific_pdf(artist_urn, driver):
     artist_df['label'] = artist_df['label'].astype('category')
 
     # Calculate features
-    artist_df = apply_graphy_features(artist_df, "FEAT_EARLY", driver)
-    artist_df = apply_graphy_features(artist_df, "FEAT_LATE", driver)
-    artist_df = apply_triangles_features(artist_df, "trianglesTrain", "coefficientTrain", driver)
-    artist_df = apply_triangles_features(artist_df, "trianglesTest", "coefficientTest", driver)
-    artist_df = apply_community_features(artist_df, "partitionTrain", "louvainTrain", driver)
-    artist_df = apply_community_features(artist_df, "partitionTest", "louvainTest", driver)
+    # TODO: pb bc artist-specific feature are not computed based on FEAT_EARLY/FEAT_LATE links (but on possibly multiple FEAT links)
+    # Need to create multiple fFEAT_EARLY / FEAT_LATE relationships when needed
+
+    artist_df = extract_same_label_feature(artist_df, driver)
+    artist_df = apply_graphy_features(artist_df, "FEAT", driver)  # We use the standard "FEAT" relationship type
+    # Filter out pairs with 0 common neighbors (because the next computations are intensive)
+    artist_df = artist_df.loc[artist_df['cn'] >= min_nb_cn]
+    artist_df = apply_triangles_features(artist_df, "triangles", "coefficient", driver)
+    artist_df = apply_community_features(artist_df, "partition", "louvain", driver)
 
     logger.info("Artist %s's Pandas DataFrame computed.", artist_urn)
     return artist_df
@@ -86,6 +91,7 @@ def apply_graphy_features(data, rel_type, driver_instance=driver):
 
 
 def apply_triangles_features(data, triangles_prop, coefficient_prop, driver_instance=driver):
+    # TODO: it seems we are using all types of link to compute these features...
     query = """
     UNWIND $pairs AS pair
     MATCH (p1) WHERE id(p1) = pair.node1
@@ -97,7 +103,7 @@ def apply_triangles_features(data, triangles_prop, coefficient_prop, driver_inst
     apoc.coll.min([p1[$coefficientProp], p2[$coefficientProp]]) AS minCoefficient,
     apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient
     """
-    pairs = [{"node1": node1, "node2": node2}  for node1,node2 in data[["node1", "node2"]].values.tolist()]
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
     params = {
     "pairs": pairs,
     "trianglesProp": triangles_prop,
@@ -113,6 +119,7 @@ def apply_triangles_features(data, triangles_prop, coefficient_prop, driver_inst
 
 
 def apply_community_features(data, partition_prop, louvain_prop, driver_instance=driver):
+    # TODO: it seems we are using all types of link to compute these features...
     query = """
     UNWIND $pairs AS pair
     MATCH (p1) WHERE id(p1) = pair.node1
@@ -137,20 +144,62 @@ def apply_community_features(data, partition_prop, louvain_prop, driver_instance
     return pd.merge(data, features, on=["node1", "node2"])
 
 
-def make_split_early_late(year=2013):
+def extract_same_label_feature(data, driver_instance):
+    # TODO: test this function because it does not seem to work
+    query = """
+        UNWIND $pairs AS pair
+        MATCH (p1) WHERE id(p1) = pair.node1
+        MATCH (p2) WHERE id(p2) = pair.node2
+        MATCH (p1)-[l:LABEL]-(p2)
+        RETURN 
+        pair.node1 AS node1, 
+        pair.node2 AS node2,
+        COUNT(DISTINCT l) AS nb_common_labels
+        """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs,
+    }
+
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    # Some dataset may not have any label information
+    if not features.empty:
+        same_label = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+        same_label = same_label.fillna(0.0)
+    else:
+        same_label = data[["node1", "node2"]]
+        same_label['nb_common_labels'] = 0.0
+
+    logger.info('Calculated same label feature.')
+    return pd.merge(data, same_label, on=["node1", "node2"])
+
+
+def make_split_early_late(year=2015):
     # TODO: try a different year split
     split_early_late(year)
-    logger.info('Early and late feturing split made on year %s.', year)
+    logger.info('Early and late featuring split made on year %s.', year)
 
 
 def engineer_features(driver):
+    # TODO: Algo : Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
+    # -> Besoin de dupliquer les arcs (car pas de prise en compte du weight dans les algos GDS) ou bien de faire du feature engineering a part (same_label: true / false) ?
+
     # Generate train and test sets
     df_train_under = get_train_set()
     df_test_under = get_test_set()
+
+    df_train_under = extract_same_label_feature(df_train_under, driver)
+    df_test_under = extract_same_label_feature(df_test_under, driver)
+
     df_train_under = apply_graphy_features(df_train_under, "FEAT_EARLY", driver)
     df_test_under = apply_graphy_features(df_test_under, "FEAT_LATE", driver)
+
     df_train_under = apply_triangles_features(df_train_under, "trianglesTrain", "coefficientTrain", driver)
     df_test_under = apply_triangles_features(df_test_under, "trianglesTest", "coefficientTest", driver)
+
     df_train_under = apply_community_features(df_train_under, "partitionTrain", "louvainTrain", driver)
     df_test_under = apply_community_features(df_test_under, "partitionTest", "louvainTest", driver)
 
@@ -158,4 +207,4 @@ def engineer_features(driver):
 
 
 if __name__ == '__main__':
-    make_split_early_late(year=2013)
+    make_split_early_late(year=2015)

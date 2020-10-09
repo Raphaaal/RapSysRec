@@ -38,3 +38,19 @@ CALL gds.labelPropagation.write({
 
 with driver.session() as session:
     result = session.run(query)
+
+query = """
+CALL gds.labelPropagation.write({
+  nodeProjection: "Artist",
+  relationshipProjection: {
+    FEAT: {
+      type: 'FEAT',
+      orientation: 'UNDIRECTED'
+    }
+  },
+  writeProperty: "partition"
+});
+"""
+
+with driver.session() as session:
+    result = session.run(query)
