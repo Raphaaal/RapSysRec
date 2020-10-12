@@ -42,32 +42,32 @@ class Neo4JHandler:
 
     def get_genre_artist(self, genre_name, artist_urn):
         with self.driver.session() as session:
-            artist_genre = session.write_transaction(self._get_genre_artist, genre_name, artist_urn)
+            artist_genre = session.read_transaction(self._get_genre_artist, genre_name, artist_urn)
             return artist_genre
 
     def get_label_artist(self, label_name, artist_urn, album_date):
         with self.driver.session() as session:
-            artist_label = session.write_transaction(self._get_label_artist, label_name, artist_urn, album_date)
+            artist_label = session.read_transaction(self._get_label_artist, label_name, artist_urn, album_date)
             return artist_label
 
     def get_artist(self, urn):
         with self.driver.session() as session:
-            artist = session.write_transaction(self._get_artist, urn)
+            artist = session.read_transaction(self._get_artist, urn)
             return artist
 
     def get_feat(self, track_id, track_name, artist1_urn, artist2_urn):
         with self.driver.session() as session:
-            feat = session.write_transaction(self._get_feat, track_id, track_name, artist1_urn, artist2_urn)
+            feat = session.read_transaction(self._get_feat, track_id, track_name, artist1_urn, artist2_urn)
             return feat
 
     def get_unscraped_artist(self, scraped_artists_urn_list, genre_names_list):
         with self.driver.session() as session:
-            artist = session.write_transaction(self._get_unscraped_artist, scraped_artists_urn_list, genre_names_list)
+            artist = session.read_transaction(self._get_unscraped_artist, scraped_artists_urn_list, genre_names_list)
             return artist
 
     def get_linked_artists(self, artist_urn):
         with self.driver.session() as session:
-            artists = session.write_transaction(self._get_linked_artists, artist_urn)
+            artists = session.read_transaction(self._get_linked_artists, artist_urn)
             return artists
 
     def truncate(self):
