@@ -44,22 +44,17 @@ def make_predictions(pdf, classifier, features):
     return pdf
 
 
-def get_relevant_predictions(pdf, concerned_artist_id):
-    graph = Neo4JHandler(
-            uri="bolt://localhost:7687",
-            user="neo4j",
-            password="root"
-        )
+def get_relevant_predictions(pdf, concerned_artist_id, graph):
 
     def filter_pdf(row, concerned_artist=concerned_artist_id):
         if row['node1'] == concerned_artist:
-            return row['node2']
+            return int(row['node2'])
         else:
-            return row['node1']
+            return int(row['node1'])
 
     pdf['id'] = pdf.apply(lambda row: filter_pdf(row, concerned_artist_id), axis=1)
     pdf_display = pdf[["id", "pred", "label", "pred_proba_0", "pred_proba_1"]]
-    ft_artists_names = graph.get_artists_pdf_from_ids(pdf['node2'].tolist())
+    ft_artists_names = graph.get_artists_pdf_from_ids(pdf['id'].tolist())
     pdf_display['name'] = np.asarray(ft_artists_names)
     result = pdf_display[pdf_display['label'] == 0].sort_values(["pred_proba_1"], ascending=[False])
     return result
@@ -79,9 +74,9 @@ if __name__ == '__main__':
     train, test = engineer_features(driver)
 
     # Artist specific train / test split
-    # TODO: some pairs may not be sampled (for ex: Vald-Hamza) and they will not be proposed in the predictions at the end
-    # -> Predict on all the pairs in the 2nd or 3rd hop of the considered artist (at the end)
-    hamza = get_artist_specific_pdf(artist_urn='5gs4Sm2WQUkcGeikMcVHbh', min_nb_cn=1.0, driver=driver)
+    # Consider all pairs in the 2nd or 3rd hop of the considered artist AND with more than 56 + 3 = 59 total neighbors
+    # Thus, some pairs may not be sampled and they will not be proposed in the predictions at the end
+    hamza = get_artist_specific_pdf(artist_urn='5gs4Sm2WQUkcGeikMcVHbh', min_nb_tn=59.0, driver=driver)
 
     # Build classifier
     # TODO: try a different classifier / hyper parameters
@@ -115,5 +110,5 @@ if __name__ == '__main__':
         "sp", "sl",
         "nb_common_labels"
     ])
-    result_hamza = get_relevant_predictions(hamza, 653)
+    result_hamza = get_relevant_predictions(hamza, concerned_artist_id=653, graph=graph)
     result_hamza.to_csv("artist_predictions.csv")

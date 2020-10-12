@@ -19,7 +19,7 @@ graph = Neo4JHandler(
 driver = graph.driver
 
 
-def get_artist_specific_pdf(artist_urn, min_nb_cn, driver):
+def get_artist_specific_pdf(artist_urn, min_nb_tn, driver):
     logger.info("Starting to compute artist %s's Pandas DataFrame.", artist_urn)
     with driver.session() as session:
         # Get positive links (existing)
@@ -53,12 +53,12 @@ def get_artist_specific_pdf(artist_urn, min_nb_cn, driver):
 
     # Calculate features
     # TODO: pb bc artist-specific feature are not computed based on FEAT_EARLY/FEAT_LATE links (but on possibly multiple FEAT links)
-    # Need to create multiple fFEAT_EARLY / FEAT_LATE relationships when needed
+    # Need to create multiple FEAT_EARLY / FEAT_LATE relationships when needed
 
     artist_df = extract_same_label_feature(artist_df, driver)
     artist_df = apply_graphy_features(artist_df, "FEAT", driver)  # We use the standard "FEAT" relationship type
-    # Filter out pairs with 0 common neighbors (because the next computations are intensive)
-    artist_df = artist_df.loc[artist_df['cn'] >= min_nb_cn]
+    # Filter out pairs with < min_nb_tn total neighbors (because the next computations are intensive)
+    artist_df = artist_df.loc[artist_df['tn'] >= min_nb_tn]
     artist_df = apply_triangles_features(artist_df, "triangles", "coefficient", driver)
     artist_df = apply_community_features(artist_df, "partition", "louvain", driver)
 
@@ -145,12 +145,12 @@ def apply_community_features(data, partition_prop, louvain_prop, driver_instance
 
 
 def extract_same_label_feature(data, driver_instance):
-    # TODO: test this function because it does not seem to work
+    # TODO: this function does not seem to work when working on the same id for p1 and p2
     query = """
         UNWIND $pairs AS pair
         MATCH (p1) WHERE id(p1) = pair.node1
         MATCH (p2) WHERE id(p2) = pair.node2
-        MATCH (p1)-[l:LABEL]-(p2)
+        MATCH (l:Label) WHERE (p1)--(l)--(p2)
         RETURN 
         pair.node1 AS node1, 
         pair.node2 AS node2,
@@ -207,4 +207,12 @@ def engineer_features(driver):
 
 
 if __name__ == '__main__':
-    make_split_early_late(year=2015)
+    # make_split_early_late(year=2015)
+
+    # same_label feature engineering test
+    d = {'node1': [653, 653, 653], 'node2': [1619, 653, 2]}
+    df = pd.DataFrame(data=d)
+    test = extract_same_label_feature(data=df, driver_instance=driver)
+    print(test)
+
+
