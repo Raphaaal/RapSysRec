@@ -174,6 +174,9 @@ class Database:
 
 if __name__ == "__main__":
 
+    # TODO: Améliorer vitesse d'exécution (multihtreading ? moins de requêtes à Spotify / à la DB ?)
+    # TODO: Modulariser pour plus de clarté
+
     db = Database(
         neo4j_user="neo4j",
         neo4j_password="root",
@@ -184,11 +187,7 @@ if __name__ == "__main__":
         artist_urn="5gs4Sm2WQUkcGeikMcVHbh",
         scraped_artists_csv="scraped_artists.csv",
         scraped_albums_csv="scraped_albums.csv",
-        nb_hops=3,
-        reset=True
+        nb_hops=4,
+        reset=False
     )
 
-
-    # TODO: Améliorer vitesse d'exécution (multihtreading ? moins de requêtes à Spotify / à la DB ?)
-
-    # TODO: Modulariser pour plus de clarté
