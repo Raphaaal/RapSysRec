@@ -35,7 +35,7 @@ class Database:
             already_linked_artist_genres = self.graph.get_genre_artist(genre, artist)
             if not already_linked_artist_genres:
                 self.graph.set_genre_artist(genre_name=genre, artist_urn=urn)
-                logger.info('Artist %s linked to genre %s.', urn, genre)
+                # logger.info('Artist %s linked to genre %s.', urn, genre)
 
     def create_feat_artist(self, album, artist, ft_artist):
         # Create artists if needed
@@ -76,10 +76,10 @@ class Database:
                 album_date=album['release_date'],
                 artist_urn=ft_artist['artist_id']
             )
-            logger.info(
-                'Artist %s linked to label %s at date %s',
-                ft_artist['artist_id'], album['label'], album['release_date']
-            )
+            # logger.info(
+            #     'Artist %s linked to label %s at date %s',
+            #     ft_artist['artist_id'], album['label'], album['release_date']
+            # )
 
     def create_from_feat(self, artist, album, feat):
         # Get featuring artists
@@ -121,10 +121,10 @@ class Database:
                     track_name=feat['track_name'],
                     track_date=feat['track_date']
                 )
-                logger.info(
-                    'Feat %s (%s) did not exist. Created in DB',
-                    feat['track_name'], feat['track_id']
-                )
+                # logger.info(
+                #     'Feat %s (%s) did not exist. Created in DB',
+                #     feat['track_name'], feat['track_id']
+                # )
 
     def create_from_album(self, scraped_album_csv, artist, album):
         if album:
@@ -224,11 +224,13 @@ class Database:
                 pool.close()
                 pool.join()
 
+    def delete_duplicate_artist(self):
+        self.graph.delete_duplicate_artists()
+
 
 if __name__ == "__main__":
 
     # TODO: Améliorer vitesse d'exécution (pool nb ? moins de requêtes à Spotify / à la DB ?)
-    # TODO: Modulariser pour plus de clarté
 
     db = Database(
         neo4j_user="neo4j",
@@ -243,4 +245,6 @@ if __name__ == "__main__":
         nb_hops=4,
         reset=True
     )
+    # Multi-threading may create duplicate artists because of concurrent scraping and creation
+    db.delete_duplicate_artist()
 
