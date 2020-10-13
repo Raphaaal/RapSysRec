@@ -8,11 +8,17 @@ import numpy as np
 from predict.feature_engineering import engineer_features, get_artist_specific_pdf
 import logging
 
+from predict.test_existing_missing_links import get_test_set
+from predict.train_existing_missing_links import get_train_set
+
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('model_training_testing')
 # logger.propagate = False
-logging.basicConfig(level='INFO')
 
 
 # TODO: print explicability (most important features)
@@ -70,19 +76,17 @@ if __name__ == '__main__':
     )
     driver = graph.driver
 
-    # Train / test split
-    train, test = engineer_features(driver)
+    # Train / test / artist sets import
+    train_set = pd.read_csv('train_set.csv')
+    test_set = pd.read_csv('test_set.csv')
+    logger.info('Train and test sets computed')
+    hamza = pd.read_csv('artist_set.csv')
+    logger.info('Artist-specific set computed')
 
-    # Artist specific train / test split
-    # Consider all pairs in the 2nd or 3rd hop of the considered artist AND with more than 56 + 3 = 59 total neighbors
-    # Thus, some pairs may not be sampled and they will not be proposed in the predictions at the end
-    hamza = get_artist_specific_pdf(artist_urn='5gs4Sm2WQUkcGeikMcVHbh', min_nb_tn=59.0, driver=driver)
-
-    # Build classifier
+    # Train classifier
     # TODO: try a different classifier / hyper parameters
-    # TODO : add features for same_label, nb_feats (i.e. duplicate the relationships?), recency, avg_popularity...
-    train.drop(columns=["node1", "node2"])
-    test.drop(columns=["node1", "node2"])
+    train_set.drop(columns=["node1", "node2"])
+    test_set.drop(columns=["node1", "node2"])
     classifier = RandomForestClassifier(n_estimators=30, max_depth=10, random_state=0)
     columns = [
         "cn", "pa", "tn",  # graph features
@@ -90,14 +94,15 @@ if __name__ == '__main__':
         "sp", "sl",  # community features
         "nb_common_labels", "nb_common_genres", "squared_popularity_diff"
     ]
-    X = train[columns]
-    y = train["label"]
+    X = train_set[columns]
+    y = train_set["label"]
     classifier.fit(X, y)
+    logger.info('Classifier trained')
 
     # Model analysis
     # TODO: at the end, re-train the validated model on all data (train + test)
-    preds = classifier.predict(test[columns])
-    y_test = test["label"]
+    preds = classifier.predict(test_set[columns])
+    y_test = test_set["label"]
     results = evaluate_model(preds, y_test)
     print(results)
     feature_expl = feature_importance(columns, classifier)
@@ -108,7 +113,8 @@ if __name__ == '__main__':
         "cn", "pa", "tn",
         "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",
         "sp", "sl",
-        "nb_common_labels"
+        "nb_common_labels", "nb_common_genres", "squared_popularity_diff"
     ])
-    result_hamza = get_relevant_predictions(hamza, concerned_artist_id=653, graph=graph)
+    result_hamza = get_relevant_predictions(hamza, concerned_artist_id=7034, graph=graph)
+    logger.info('Artist prediction computed')
     result_hamza.to_csv("artist_predictions.csv")

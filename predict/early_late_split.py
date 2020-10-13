@@ -11,8 +11,10 @@ driver = graph.driver
 def split_early_late(date):
     query = """
     MATCH (a: Artist)-[r:FEAT_NB]-(b: Artist)
+    MATCH (a)-[r2:FEAT]->(b)
     WHERE r.year <= $date
-    MERGE (a)-[:FEAT_EARLY {year: r.year, nb_feats: r.nb_feats}]-(b);
+    WITH collect(distinct r2) as all_feats, a , b
+    FOREACH (rel in all_feats | CREATE (a)-[:FEAT_EARLY]->(b))
     """
 
     with driver.session() as session:
@@ -20,8 +22,10 @@ def split_early_late(date):
 
     query = """
     MATCH (a: Artist)-[r:FEAT_NB]-(b: Artist)
+    MATCH (a)-[r2:FEAT]->(b)
     WHERE r.year > $date
-    MERGE (a)-[:FEAT_LATE {year: r.year, nb_feats: r.nb_feats}]-(b);
+    WITH collect(distinct r2) as all_feats, a , b
+    FOREACH (rel in all_feats | CREATE (a)-[:FEAT_LATE]->(b))
     """
 
     with driver.session() as session:

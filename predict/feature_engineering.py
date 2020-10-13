@@ -213,15 +213,14 @@ def extract_same_genre_feature(data, driver_instance):
 
 
 def extract_popularity_diff_feature(data, driver_instance):
-    # TODO: this function does not seem to work when working on the same id for p1 and p2
     query = """
         UNWIND $pairs AS pair
-        MATCH (p1) WHERE id(p1) = pair.node1
+        MATCH (p1) WHERE id(p1) = pair.node1 
         MATCH (p2) WHERE id(p2) = pair.node2
         RETURN 
         pair.node1 AS node1, 
         pair.node2 AS node2,
-        (node1.popularity - node2.popularity) * (node1.popularity - node2.popularity) AS squared_popularity_diff
+        abs(p1.popularity - p2.popularity) AS squared_popularity_diff
         """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
     params = {
@@ -232,7 +231,7 @@ def extract_popularity_diff_feature(data, driver_instance):
         result = session.run(query, params)
         features = pd.DataFrame([dict(record) for record in result])
 
-    # Some dataset may not have any label information
+    # Some dataset may not have any popularity information
     if not features.empty:
         same_label = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
         same_label = same_label.fillna(0.0)
@@ -245,19 +244,22 @@ def extract_popularity_diff_feature(data, driver_instance):
 
 
 def make_split_early_late(year=2015):
-    # TODO: try a different year split
+    # TODO: try a different year split or odd/even years
     split_early_late(year)
     logger.info('Early and late featuring split made on year %s.', year)
 
 
-def engineer_features(driver):
+def engineer_features(driver, train_set, test_set):
     # TODO: Algo : Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
     # -> Besoin de dupliquer les arcs (car pas de prise en compte du weight dans les algos GDS) ou bien de faire du feature engineering a part (same_label: true / false) ?
 
+    # TODO: add feature feat_percentage = nb tracks with ft / nb total tracks from the artist
+    # TODO : add feature for recency
+
     # TODO: use transaction functions (session.write_transactions or session.read_transaction) instead of auto-commit transactions (session.run)
     # Generate train and test sets
-    df_train_under = get_train_set()
-    df_test_under = get_test_set()
+    df_train_under = train_set
+    df_test_under = test_set
 
     df_train_under = extract_same_label_feature(df_train_under, driver)
     df_test_under = extract_same_label_feature(df_test_under, driver)
@@ -281,12 +283,12 @@ def engineer_features(driver):
 
 
 if __name__ == '__main__':
-    # make_split_early_late(year=2015)
+    make_split_early_late(year=2017)
 
     # same_label feature engineering test
-    d = {'node1': [653, 653, 653], 'node2': [1619, 653, 2]}
-    df = pd.DataFrame(data=d)
-    test = extract_same_label_feature(data=df, driver_instance=driver)
-    print(test)
+    # d = {'node1': [653, 653, 653], 'node2': [1619, 653, 2]}
+    # df = pd.DataFrame(data=d)
+    # test = extract_same_label_feature(data=df, driver_instance=driver)
+    # print(test)
 
 
