@@ -10,9 +10,9 @@ class Neo4JHandler:
     def close(self):
         self.driver.close()
 
-    def create_artist(self, name, urn, popularity):
+    def merge_artist(self, name, urn, popularity):
         with self.driver.session() as session:
-            artist = session.write_transaction(self._create_artist, name, urn, popularity)
+            artist = session.write_transaction(self._merge_artist, name, urn, popularity)
             return artist
 
     def create_feat(self, urn1, urn2, track_id, track_name, track_date):
@@ -60,14 +60,9 @@ class Neo4JHandler:
             feat = session.read_transaction(self._get_feat, track_id, track_name, artist1_urn, artist2_urn)
             return feat
 
-    def get_unscraped_artist(self, scraped_artists_urn_list, genre_names_list):
+    def get_unscraped_linked_artists(self, artist_urn, scraped_artists_urn_list):
         with self.driver.session() as session:
-            artist = session.read_transaction(self._get_unscraped_artist, scraped_artists_urn_list, genre_names_list)
-            return artist
-
-    def get_linked_artists(self, artist_urn):
-        with self.driver.session() as session:
-            artists = session.read_transaction(self._get_linked_artists, artist_urn)
+            artists = session.read_transaction(self._get_linked_artists, artist_urn, scraped_artists_urn_list)
             return artists
 
     def truncate(self):
@@ -87,13 +82,10 @@ class Neo4JHandler:
         return artists_names
 
     @staticmethod
-    def _create_artist(tx, name, urn, popularity):
+    def _merge_artist(tx, name, urn, popularity):
         result = tx.run(
-            "CREATE (a:Artist) "
-            "SET a.name = $name "
-            "SET a.urn = $urn "
-            "SET a.popularity = $popularity "
-            "RETURN a.name + ' created.'",
+            "MERGE (a:Artist {name: $name, urn: $urn, popularity: $popularity}) "
+            "RETURN a.name + ' merged.'",
             name=name,
             urn=urn,
             popularity=popularity
@@ -217,11 +209,13 @@ class Neo4JHandler:
         return [row[0] for row in result]
 
     @staticmethod
-    def _get_linked_artists(tx, artist_urn):
+    def _get_linked_artists(tx, artist_urn, scraped_artists_urn_list):
         result = tx.run(
             "MATCH (a:Artist {urn: $artist_urn}) -[r:FEAT]- (a2:Artist) "
+            "WHERE NOT a2.urn IN $scraped_artists_urn_list "
             "RETURN DISTINCT a2.urn ",
             artist_urn=artist_urn,
+            scraped_artists_urn_list=scraped_artists_urn_list
         )
         return [row[0] for row in result]
 
