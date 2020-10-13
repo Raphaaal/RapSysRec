@@ -2,10 +2,9 @@ import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import logging
 from pprint import pprint
-from history import check_album_is_scraped, write_scraped_album
 
 logger = logging.getLogger('spotify_loader')
-# logger.propagate = False
+logger.propagate = False
 logging.basicConfig(level='INFO')
 
 
