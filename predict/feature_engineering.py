@@ -56,6 +56,8 @@ def get_artist_specific_pdf(artist_urn, min_nb_tn, driver):
     # Need to create multiple FEAT_EARLY / FEAT_LATE relationships when needed
 
     artist_df = extract_same_label_feature(artist_df, driver)
+    artist_df = extract_same_genre_feature(artist_df, driver)
+    artist_df = extract_popularity_diff_feature(artist_df, driver)
     artist_df = apply_graphy_features(artist_df, "FEAT", driver)  # We use the standard "FEAT" relationship type
     # Filter out pairs with < min_nb_tn total neighbors (because the next computations are intensive)
     artist_df = artist_df.loc[artist_df['tn'] >= min_nb_tn]
@@ -177,6 +179,71 @@ def extract_same_label_feature(data, driver_instance):
     return pd.merge(data, same_label, on=["node1", "node2"])
 
 
+def extract_same_genre_feature(data, driver_instance):
+    # TODO: this function does not seem to work when working on the same id for p1 and p2
+    query = """
+        UNWIND $pairs AS pair
+        MATCH (p1) WHERE id(p1) = pair.node1
+        MATCH (p2) WHERE id(p2) = pair.node2
+        MATCH (g:Genre) WHERE (p1)--(g)--(p2)
+        RETURN 
+        pair.node1 AS node1, 
+        pair.node2 AS node2,
+        COUNT(DISTINCT g) AS nb_common_genres
+        """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs,
+    }
+
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    # Some dataset may not have any label information
+    if not features.empty:
+        same_label = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+        same_label = same_label.fillna(0.0)
+    else:
+        same_label = data[["node1", "node2"]]
+        same_label['nb_common_genres'] = 0.0
+
+    logger.info('Calculated same genre feature.')
+    return pd.merge(data, same_label, on=["node1", "node2"])
+
+
+def extract_popularity_diff_feature(data, driver_instance):
+    # TODO: this function does not seem to work when working on the same id for p1 and p2
+    query = """
+        UNWIND $pairs AS pair
+        MATCH (p1) WHERE id(p1) = pair.node1
+        MATCH (p2) WHERE id(p2) = pair.node2
+        RETURN 
+        pair.node1 AS node1, 
+        pair.node2 AS node2,
+        (node1.popularity - node2.popularity) * (node1.popularity - node2.popularity) AS squared_popularity_diff
+        """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs,
+    }
+
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    # Some dataset may not have any label information
+    if not features.empty:
+        same_label = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+        same_label = same_label.fillna(0.0)
+    else:
+        same_label = data[["node1", "node2"]]
+        same_label['squared_popularity_diff'] = 0.0
+
+    logger.info('Calculated popularity difference feature.')
+    return pd.merge(data, same_label, on=["node1", "node2"])
+
+
 def make_split_early_late(year=2015):
     # TODO: try a different year split
     split_early_late(year)
@@ -194,6 +261,12 @@ def engineer_features(driver):
 
     df_train_under = extract_same_label_feature(df_train_under, driver)
     df_test_under = extract_same_label_feature(df_test_under, driver)
+
+    df_train_under = extract_same_genre_feature(df_train_under, driver)
+    df_test_under = extract_same_genre_feature(df_test_under, driver)
+
+    df_test_under = extract_popularity_diff_feature(df_test_under, driver)
+    df_test_under = extract_popularity_diff_feature(df_test_under, driver)
 
     df_train_under = apply_graphy_features(df_train_under, "FEAT_EARLY", driver)
     df_test_under = apply_graphy_features(df_test_under, "FEAT_LATE", driver)

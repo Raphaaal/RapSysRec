@@ -88,7 +88,7 @@ if __name__ == '__main__':
         "cn", "pa", "tn",  # graph features
         "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",  # triangle features
         "sp", "sl",  # community features
-        "nb_common_labels"
+        "nb_common_labels", "nb_common_genres", "squared_popularity_diff"
     ]
     X = train[columns]
     y = train["label"]
