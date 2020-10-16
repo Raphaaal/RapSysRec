@@ -5,11 +5,8 @@ from sklearn.metrics import recall_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import accuracy_score
 import numpy as np
-from predict.feature_engineering import engineer_features, get_artist_specific_pdf
 import logging
-
-from predict.test_existing_missing_links import get_test_set
-from predict.train_existing_missing_links import get_train_set
+from joblib import dump, load
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
@@ -77,11 +74,9 @@ if __name__ == '__main__':
     driver = graph.driver
 
     # Train / test / artist sets import
-    train_set = pd.read_csv('train_set.csv')
-    test_set = pd.read_csv('test_set.csv')
-    logger.info('Train and test sets computed')
-    hamza = pd.read_csv('artist_set.csv')
-    logger.info('Artist-specific set computed')
+    train_set = pd.read_csv('train_set_features.csv')
+    test_set = pd.read_csv('test_set_features.csv')
+    hamza = pd.read_csv('artist_set_features.csv')
 
     # Train classifier
     # TODO: try a different classifier / hyper parameters
@@ -98,6 +93,8 @@ if __name__ == '__main__':
     y = train_set["label"]
     classifier.fit(X, y)
     logger.info('Classifier trained')
+    dump(classifier, 'model.joblib')
+    logger.info('Classifier saved')
 
     # Model analysis
     # TODO: at the end, re-train the validated model on all data (train + test)
