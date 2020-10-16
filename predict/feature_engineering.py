@@ -19,42 +19,12 @@ graph = Neo4JHandler(
 driver = graph.driver
 
 
-def get_artist_specific_pdf(artist_urn, min_nb_tn, driver):
-    logger.info("Starting to compute artist %s's Pandas DataFrame.", artist_urn)
-    with driver.session() as session:
-        # Get positive links (existing)
-        result = session.run(
-            """
-            MATCH (a:Artist {urn: $artist_urn})-[:FEAT]-(b:Artist)
-            RETURN id(a) AS node1, id(b) AS node2, 1 AS label
-            """
-            , parameters={"artist_urn": artist_urn})
-        artist_existing_links = pd.DataFrame([dict(record) for record in result])
-
-        # Get negative links within 2 or 3 hops (missing)
-        result = session.run(
-            """
-            MATCH (a:Artist {urn: $artist_urn})
-            WHERE (a)-[:FEAT]-()
-            MATCH (a)-[:FEAT*2..3]-(b)
-            WHERE NOT ((a)-[:FEAT]-(b))
-            RETURN id(a) AS node1, id(b) AS node2, 0 AS label
-            """
-            , parameters={
-                "artist_urn": artist_urn,
-            }
-        )
-
-        artist_missing_links = pd.DataFrame([dict(record) for record in result])
-        artist_missing_links = artist_missing_links.drop_duplicates()
-
-    artist_df = artist_existing_links.append(artist_missing_links, ignore_index=True)
+def get_artist_specific_features(artist_df, min_nb_tn, driver):
+    logger.info("Starting to compute artist %s's Pandas DataFrame.")
     artist_df['label'] = artist_df['label'].astype('category')
+    logger.info('Artist pairs computed.')
 
     # Calculate features
-    # TODO: pb bc artist-specific feature are not computed based on FEAT_EARLY/FEAT_LATE links (but on possibly multiple FEAT links)
-    # Need to create multiple FEAT_EARLY / FEAT_LATE relationships when needed
-
     artist_df = extract_same_label_feature(artist_df, driver)
     artist_df = extract_same_genre_feature(artist_df, driver)
     artist_df = extract_popularity_diff_feature(artist_df, driver)
@@ -64,7 +34,7 @@ def get_artist_specific_pdf(artist_urn, min_nb_tn, driver):
     artist_df = apply_triangles_features(artist_df, "triangles", "coefficient", driver)
     artist_df = apply_community_features(artist_df, "partition", "louvain", driver)
 
-    logger.info("Artist %s's Pandas DataFrame computed.", artist_urn)
+    logger.info("Artist %s's Pandas DataFrame computed.")
     return artist_df
 
 
@@ -93,12 +63,12 @@ def apply_graphy_features(data, rel_type, driver_instance=driver):
 
 
 def apply_triangles_features(data, triangles_prop, coefficient_prop, driver_instance=driver):
-    # TODO: it seems we are using all types of link to compute these features...
     query = """
     UNWIND $pairs AS pair
     MATCH (p1) WHERE id(p1) = pair.node1
     MATCH (p2) WHERE id(p2) = pair.node2
-    RETURN pair.node1 AS node1,
+    RETURN 
+    pair.node1 AS node1,
     pair.node2 AS node2,
     apoc.coll.min([p1[$trianglesProp], p2[$trianglesProp]]) AS minTriangles,
     apoc.coll.max([p1[$trianglesProp], p2[$trianglesProp]]) AS maxTriangles,
@@ -116,12 +86,12 @@ def apply_triangles_features(data, triangles_prop, coefficient_prop, driver_inst
         result = session.run(query, params)
         features = pd.DataFrame([dict(record) for record in result])
 
+    result = pd.merge(data, features, on=["node1", "node2"])
     logger.info('Calculated triangles features.')
-    return pd.merge(data, features, on=["node1", "node2"])
+    return result
 
 
 def apply_community_features(data, partition_prop, louvain_prop, driver_instance=driver):
-    # TODO: it seems we are using all types of link to compute these features...
     query = """
     UNWIND $pairs AS pair
     MATCH (p1) WHERE id(p1) = pair.node1
@@ -217,7 +187,7 @@ def extract_popularity_diff_feature(data, driver_instance):
         UNWIND $pairs AS pair
         MATCH (p1) WHERE id(p1) = pair.node1 
         MATCH (p2) WHERE id(p2) = pair.node2
-        RETURN 
+        RETURN DISTINCT
         pair.node1 AS node1, 
         pair.node2 AS node2,
         abs(p1.popularity - p2.popularity) AS squared_popularity_diff
@@ -249,37 +219,34 @@ def make_split_early_late(year=2015):
     logger.info('Early and late featuring split made on year %s.', year)
 
 
-def engineer_features(driver, train_set, test_set):
+def engineer_features(driver, dataset, train=True):
+
     # TODO: Algo : Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
     # -> Besoin de dupliquer les arcs (car pas de prise en compte du weight dans les algos GDS) ou bien de faire du feature engineering a part (same_label: true / false) ?
 
     # TODO: add feature feat_percentage = nb tracks with ft / nb total tracks from the artist
     # TODO : add feature for recency
-
     # TODO: use transaction functions (session.write_transactions or session.read_transaction) instead of auto-commit transactions (session.run)
-    # Generate train and test sets
-    df_train_under = train_set
-    df_test_under = test_set
 
-    df_train_under = extract_same_label_feature(df_train_under, driver)
-    df_test_under = extract_same_label_feature(df_test_under, driver)
-
-    df_train_under = extract_same_genre_feature(df_train_under, driver)
-    df_test_under = extract_same_genre_feature(df_test_under, driver)
-
-    df_test_under = extract_popularity_diff_feature(df_test_under, driver)
-    df_test_under = extract_popularity_diff_feature(df_test_under, driver)
-
-    df_train_under = apply_graphy_features(df_train_under, "FEAT_EARLY", driver)
-    df_test_under = apply_graphy_features(df_test_under, "FEAT_LATE", driver)
-
-    df_train_under = apply_triangles_features(df_train_under, "trianglesTrain", "coefficientTrain", driver)
-    df_test_under = apply_triangles_features(df_test_under, "trianglesTest", "coefficientTest", driver)
-
-    df_train_under = apply_community_features(df_train_under, "partitionTrain", "louvainTrain", driver)
-    df_test_under = apply_community_features(df_test_under, "partitionTest", "louvainTest", driver)
-
-    return df_train_under, df_test_under
+    # Generate train or test sets
+    if train:
+        df_train_under = dataset
+        df_train_under = extract_same_label_feature(df_train_under, driver)
+        df_train_under = extract_same_genre_feature(df_train_under, driver)
+        df_train_under = extract_popularity_diff_feature(df_train_under, driver)
+        df_train_under = apply_graphy_features(df_train_under, "FEAT_EARLY", driver)
+        df_train_under = apply_triangles_features(df_train_under, "trianglesTrain", "coefficientTrain", driver)
+        df_train_under = apply_community_features(df_train_under, "partitionTrain", "louvainTrain", driver)
+        return df_train_under
+    else:
+        df_test_under = dataset
+        df_test_under = extract_same_label_feature(df_test_under, driver)
+        df_test_under = extract_same_genre_feature(df_test_under, driver)
+        df_test_under = extract_popularity_diff_feature(df_test_under, driver)
+        df_test_under = apply_graphy_features(df_test_under, "FEAT_LATE", driver)
+        df_test_under = apply_triangles_features(df_test_under, "trianglesTest", "coefficientTest", driver)
+        df_test_under = apply_community_features(df_test_under, "partitionTest", "louvainTest", driver)
+        return df_test_under
 
 
 if __name__ == '__main__':

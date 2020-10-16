@@ -227,6 +227,9 @@ class Database:
     def delete_duplicate_artist(self):
         self.graph.delete_duplicate_artists()
 
+    def delete_nodes_without_label(self):
+        self.graph.delete_nodes_without_label()
+
 
 if __name__ == "__main__":
 
@@ -247,4 +250,5 @@ if __name__ == "__main__":
     )
     # Multi-threading may create duplicate artists because of concurrent scraping and creation
     db.delete_duplicate_artist()
+    db.delete_nodes_without_label()
 

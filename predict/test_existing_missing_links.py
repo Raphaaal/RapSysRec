@@ -40,7 +40,7 @@ def get_test_set(max_links, driver):
             """
         )
         all_pairs = pd.DataFrame([dict(record) for record in result])
-        repeat_all_pairs = pd.concat([all_pairs] * (int(max_links/len(all_pairs.index)) + 50), ignore_index=True)
+        repeat_all_pairs = pd.concat([all_pairs] * (int(max_links/len(all_pairs.index)) + 100), ignore_index=True)
         repeat_all_pairs['node2'] = np.random.permutation(repeat_all_pairs[['node2']].values)
         repeat_all_pairs['concat'] = repeat_all_pairs["node1"].astype(str) + '-' + repeat_all_pairs["node2"].astype(str)
         concat_list = repeat_all_pairs['concat'].drop_duplicates().tolist()

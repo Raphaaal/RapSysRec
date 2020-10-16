@@ -73,6 +73,10 @@ class Neo4JHandler:
         with self.driver.session() as session:
             session.write_transaction(self._delete_duplicate)
 
+    def delete_nodes_without_label(self):
+        with self.driver.session() as session:
+            session.write_transaction(self._delete_nodes_without_label)
+
     def get_artists_pdf_from_ids(self, artists_id_list):
         query = """
         MATCH (a: Artist)
@@ -239,6 +243,14 @@ class Neo4JHandler:
             "WHERE SIZE(artists) > 1 "
             "UNWIND artists[1..] AS artist "
             "DETACH DELETE artist "
+        )
+        return [row[0] for row in result]@staticmethod
+
+    @staticmethod
+    def _delete_nodes_without_label(tx):
+        result = tx.run(
+            "MATCH (n) WHERE size(labels(n)) = 0 "
+            "DETACH DELETE n "
         )
         return [row[0] for row in result]
 
