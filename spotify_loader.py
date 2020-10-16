@@ -81,11 +81,13 @@ class SpotifyLoader:
     
     def get_artist_albums(self, artist):
         albums = []
-        results = self.sp.artist_albums(artist['id'], album_type=['album', 'single', 'appears_on'])
-        albums.extend(results['items'])
-        while results['next']:
-            results = self.sp.next(results)
+        album_types = ['album', 'single', 'appears_on']
+        for alb_type in album_types:
+            results = self.sp.artist_albums(artist['id'], album_type=alb_type)
             albums.extend(results['items'])
+            while results['next']:
+                results = self.sp.next(results)
+                albums.extend(results['items'])
         # Skip duplicate albums
         unique = set()
         albums_info = []
@@ -112,4 +114,6 @@ if __name__ == '__main__':
         client_id="28d60111ea634effb71f87304bed9285",
         client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
-    spotify.main_test('Booba')
+    artist = {'id': "2eh8cEKZk4VeruUrGq748D" }
+    test = spotify.get_artist_albums(artist)
+    pprint(test)
