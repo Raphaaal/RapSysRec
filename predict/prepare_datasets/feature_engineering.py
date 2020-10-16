@@ -1,8 +1,6 @@
 from neo4j_handler import Neo4JHandler
 import pandas as pd
-from predict.train_existing_missing_links import get_train_set
-from predict.test_existing_missing_links import get_test_set
-from predict.early_late_split import split_early_late
+from predict.prepare_graph.early_late_split import split_early_late
 import logging
 
 logger = logging.getLogger('feature_engineering')
@@ -213,12 +211,6 @@ def extract_popularity_diff_feature(data, driver_instance):
     return pd.merge(data, same_label, on=["node1", "node2"])
 
 
-def make_split_early_late(year=2015):
-    # TODO: try a different year split or odd/even years
-    split_early_late(year)
-    logger.info('Early and late featuring split made on year %s.', year)
-
-
 def engineer_features(driver, dataset, train=True):
 
     # TODO: Algo : Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
@@ -247,15 +239,3 @@ def engineer_features(driver, dataset, train=True):
         df_test_under = apply_triangles_features(df_test_under, "trianglesTest", "coefficientTest", driver)
         df_test_under = apply_community_features(df_test_under, "partitionTest", "louvainTest", driver)
         return df_test_under
-
-
-if __name__ == '__main__':
-    make_split_early_late(year=2017)
-
-    # same_label feature engineering test
-    # d = {'node1': [653, 653, 653], 'node2': [1619, 653, 2]}
-    # df = pd.DataFrame(data=d)
-    # test = extract_same_label_feature(data=df, driver_instance=driver)
-    # print(test)
-
-

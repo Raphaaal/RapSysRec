@@ -74,9 +74,9 @@ if __name__ == '__main__':
     driver = graph.driver
 
     # Train / test / artist sets import
-    train_set = pd.read_csv('train_set_features.csv')
-    test_set = pd.read_csv('test_set_features.csv')
-    hamza = pd.read_csv('artist_set_features.csv')
+    train_set = pd.read_csv('../train_set_features.csv')
+    test_set = pd.read_csv('../test_set_features.csv')
+    hamza = pd.read_csv('../artist_set_features.csv')
 
     # Train classifier
     # TODO: try a different classifier / hyper parameters
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     y = train_set["label"]
     classifier.fit(X, y)
     logger.info('Classifier trained')
-    dump(classifier, 'model.joblib')
+    dump(classifier, '../model.joblib')
     logger.info('Classifier saved')
 
     # Model analysis
