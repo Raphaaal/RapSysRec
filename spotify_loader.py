@@ -1,18 +1,25 @@
+import itertools
+
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import logging
 from pprint import pprint
+from multiprocessing.dummy import Pool as ThreadPool
 
+
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('spotify_loader')
-logger.propagate = False
-logging.basicConfig(level='INFO')
+# logger.propagate = False
 
 
 def get_track_ft_info(track, album_date):
     # track = self.sp.track(track_id)
     artists_list = track['artists']
     if len(artists_list) > 1:
-        logger.info('Scraping track %s (%s)', track['name'], track['id'])
+        # logger.info('Scraping track %s (%s)', track['name'], track['id'])
         artists_objects_lists = []
         for artist in artists_list:
             artists_objects_lists.append(
@@ -83,34 +90,51 @@ class SpotifyLoader:
     
     def get_artist_albums(self, artist_urn):
         albums = []
+        albums_list = []
         album_types = ['album', 'single', 'appears_on']
-        unique = set()
-        for alb_type in album_types:
-            results = self.sp.artist_albums(artist_urn, album_type=alb_type)
 
-            albums_info = [
-                {
+        def get_artist_albums_by_type(alb_type):
+            # logger.info('Start call for album type %s ', alb_type)
+            results = self.sp.artist_albums(artist_urn, album_type=alb_type)
+            albums_list.extend(results['items'])
+            while results['next']:
+                results = self.sp.next(results)
+                albums_list.extend(results['items'])
+            # logger.info('End call for album type %s ', alb_type)
+
+            def build_album_info(final_list, album):
+                album_info = {
                     'release_date': album['release_date'],
                     'id': album['id'],
                     'name': album['name'],
                     'label': self.sp.album(album['id'])['label']
-                } for album in results['items'] if (album['name'].lower() not in unique and album)
-            ]
-            unique.update([album['name'] for album in albums_info])
-            albums.extend(albums_info)
+                }
+                final_list.append(album_info)
+                return album_info
 
-            while results['next']:
-                results = self.sp.next(results)
-                albums_info = [
-                    {
-                        'release_date': album['release_date'],
-                        'id': album['id'],
-                        'name': album['name'],
-                        'label': self.sp.album(album['id'])['label']
-                    } for album in results['items'] if album['name'].lower() not in unique
-                ]
-                unique.update([album['name'] for album in albums_info])
-                albums.extend(albums_info)
+            # Multi-threading pool
+            pool = ThreadPool(2)
+            results = pool.starmap(
+                build_album_info,
+                zip(
+                    itertools.repeat(albums),
+                    albums_list
+                )
+            )
+            pool.close()
+            pool.join()
+
+        # Multi-threading pool
+        pool = ThreadPool(2)
+        results = pool.starmap(
+            get_artist_albums_by_type,
+            zip(
+                album_types
+            )
+        )
+        pool.close()
+        pool.join()
+
         return albums
 
     def main_test(self, artist):

@@ -1,7 +1,5 @@
 from itertools import combinations
-
 import neo4j
-
 from history import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album, \
     get_scraped_artists, truncate_file
 from neo4j_handler import Neo4JHandler
@@ -16,8 +14,7 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('database')
-# logger.propagate = False
-logging.basicConfig(level='INFO')
+# logger.propagate = False<
 
 
 class Database:
@@ -37,115 +34,125 @@ class Database:
             password="root"
         )
 
-    def create_genres(self, urn, artist, genre):
-        if genre:
-            self.graph.merge_genre(genre)
-            already_linked_artist_genres = self.graph.get_genre_artist(genre, artist)
-            if not already_linked_artist_genres:
-                self.graph.set_genre_artist(genre_name=genre, artist_urn=urn)
-                # logger.info('Artist %s linked to genre %s.', urn, genre)
+    # def create_genres(self, urn, artist, genre):
+    #     if genre:
+    #         self.graph.merge_genre(genre)
+    #         already_linked_artist_genres = self.graph.get_genre_artist(genre, artist)
+    #         if not already_linked_artist_genres:
+    #             self.graph.set_genre_artist(genre_name=genre, artist_urn=urn)
+    #             # logger.info('Artist %s linked to genre %s.', urn, genre)
 
-    def create_feat_artist(self, album, artist, ft_artist):
-        # Create artists if needed
-        artist_test = self.graph.get_artist(urn=ft_artist['artist_id'])
-        if not artist_test:
-            name = ft_artist['artist_name']
-            urn = ft_artist['artist_id']
-            artist_object = self.spotify.get_artist_info(
-                self.spotify.get_artist_by_id(ft_artist['artist_id'])
-            )
-            popularity = artist_object['artist_popularity']
-            self.graph.merge_artist(name, urn, popularity)
-            logger.info('Artist %s (%s) did not exist. Created in DB', name, urn)
+    # def create_feat_artist(self, album, artist, ft_artist):
+    #     # Create artists if needed
+    #     artist_test = self.graph.get_artist(urn=ft_artist['artist_id'])
+    #     if not artist_test:
+    #         name = ft_artist['artist_name']
+    #         urn = ft_artist['artist_id']
+    #         artist_object = self.spotify.get_artist_info(
+    #             self.spotify.get_artist_by_id(ft_artist['artist_id'])
+    #         )
+    #         popularity = artist_object['artist_popularity']
+    #         self.graph.merge_artist(name, urn, popularity)
+    #         logger.info('Artist %s (%s) did not exist. Created in DB', name, urn)
+    #
+    #         # Merge and link artists' genres
+    #         artist_genres = artist_object['artist_genres']
+    #         for genre in artist_genres:
+    #             self.create_genres(urn=urn, artist=artist, genre=genre)
+    #         # Multi-threading pool -> Seemed to duplicate genre and links to genres
+    #         # pool = ThreadPool(2)
+    #         # results = pool.starmap(
+    #         #     self.create_genres,
+    #         #     zip(
+    #         #         itertools.repeat(urn),
+    #         #         itertools.repeat(artist),
+    #         #         artist_genres
+    #         #     )
+    #         # )
+    #         # pool.close()
+    #         # pool.join()
+    #
+    #     # Create artist-label link if needed
+    #     if not self.graph.get_label_artist(
+    #             label_name=album['label'],
+    #             album_date=album['release_date'],
+    #             artist_urn=ft_artist['artist_id']
+    #     ):
+    #         self.graph.set_label_artist(
+    #             label_name=album['label'],
+    #             album_date=album['release_date'],
+    #             artist_urn=ft_artist['artist_id']
+    #         )
+    #         # logger.info(
+    #         #     'Artist %s linked to label %s at date %s',
+    #         #     ft_artist['artist_id'], album['label'], album['release_date']
+    #         # )
 
-            # Merge and link artists' genres
-            artist_genres = artist_object['artist_genres']
-            for genre in artist_genres:
-                self.create_genres(urn=urn, artist=artist, genre=genre)
-            # Multi-threading pool -> Seemed to duplicate genre and links to genres
-            # pool = ThreadPool(2)
-            # results = pool.starmap(
-            #     self.create_genres,
-            #     zip(
-            #         itertools.repeat(urn),
-            #         itertools.repeat(artist),
-            #         artist_genres
-            #     )
-            # )
-            # pool.close()
-            # pool.join()
-
-        # Create artist-label link if needed
-        if not self.graph.get_label_artist(
-                label_name=album['label'],
-                album_date=album['release_date'],
-                artist_urn=ft_artist['artist_id']
-        ):
-            self.graph.set_label_artist(
-                label_name=album['label'],
-                album_date=album['release_date'],
-                artist_urn=ft_artist['artist_id']
-            )
-            # logger.info(
-            #     'Artist %s linked to label %s at date %s',
-            #     ft_artist['artist_id'], album['label'], album['release_date']
-            # )
-
-    def create_from_feat(self, artist, album, feat):
-        # Get featuring artists
-        artists_id_list = []
-        for ft_artist in feat['featuring_artists']:
-            artists_id_list.append(ft_artist['artist_id'])
-
-        # Multi-threading pool
-        pool = ThreadPool(2)
-        results = pool.starmap(
-            self.create_feat_artist,
-            zip(
-                itertools.repeat(album),
-                itertools.repeat(artist),
-                feat['featuring_artists']
-            )
-        )
-        pool.close()
-        pool.join()
-
-        # Create feat if needed
-        feat_test = False
-        for artists_pair in list(combinations(artists_id_list, 2)):
-            feat_test = self.graph.get_feat(
-                track_id=feat['track_id'],
-                track_name=feat['track_name'],
-                artist1_urn=artists_pair[0],
-                artist2_urn=artists_pair[1]
-            )
-            if feat_test:
-                break
-        if not feat_test:
-            # Handle feats with more than 2 artists
-            for artists_pair in list(combinations(artists_id_list, 2)):
-                self.graph.create_feat(
-                    urn1=artists_pair[0],
-                    urn2=artists_pair[1],
-                    track_id=feat['track_id'],
-                    track_name=feat['track_name'],
-                    track_date=feat['track_date']
-                )
-                # logger.info(
-                #     'Feat %s (%s) did not exist. Created in DB',
-                #     feat['track_name'], feat['track_id']
-                # )
+    # def create_from_feat(self, artist, album, feat):
+    #     # Get featuring artists
+    #     artists_id_list = []
+    #     for ft_artist in feat['featuring_artists']:
+    #         artists_id_list.append(ft_artist['artist_id'])
+    #
+    #     # Multi-threading pool
+    #     pool = ThreadPool(2)
+    #     results = pool.starmap(
+    #         self.create_feat_artist,
+    #         zip(
+    #             itertools.repeat(album),
+    #             itertools.repeat(artist),
+    #             feat['featuring_artists']
+    #         )
+    #     )
+    #     pool.close()
+    #     pool.join()
+    #
+    #     # Create feat if needed
+    #     feat_test = False
+    #     for artists_pair in list(combinations(artists_id_list, 2)):
+    #         feat_test = self.graph.get_feat(
+    #             track_id=feat['track_id'],
+    #             track_name=feat['track_name'],
+    #             artist1_urn=artists_pair[0],
+    #             artist2_urn=artists_pair[1]
+    #         )
+    #         if feat_test:
+    #             break
+    #     if not feat_test:
+    #         # Handle feats with more than 2 artists
+    #         for artists_pair in list(combinations(artists_id_list, 2)):
+    #             self.graph.create_feat(
+    #                 urn1=artists_pair[0],
+    #                 urn2=artists_pair[1],
+    #                 track_id=feat['track_id'],
+    #                 track_name=feat['track_name'],
+    #                 track_date=feat['track_date']
+    #             )
+    #             # logger.info(
+    #             #     'Feat %s (%s) did not exist. Created in DB',
+    #             #     feat['track_name'], feat['track_id']
+    #             # )
 
     def create_from_album(self, scraped_album_csv_list, scraped_album_csv, artist, album):
         if album:
+            # logger.info('Testing if album %s has already been scraped.', album['id'])
             if not check_album_is_scraped(scraped_album_csv=scraped_album_csv_list, album_urn=album['id']):
+                # logger.info('Album %s has not already been scraped.', album['id'])
 
                 # Get album's featuring info
+                # logger.info('Getting album %s featurings.', album['id'])
                 album_feat_info = self.spotify.get_album_ft_tracks(album)
+                # logger.info('Got album %s featurings.', album['id'])
                 if album_feat_info:
                     # Merge album label
-                    self.graph.merge_label(label=album['label'], artist=artist)
+                    # logger.info('Creating album %s label.', album['id'])
+                    if album['label']:
+                        self.graph.merge_label(label=album['label'], artist=artist)
+                    # logger.info('Created album %s label.', album['id'])
+
+                    # logger.info('Creating album %s featurings.', album['id'])
                     self.graph.create_multiple_feats(album_feat_info)
+                    # logger.info('Created album %s featurings.', album['id'])
                     # TODO: misssing genre creations (and their relationships to artists)
 
                     # Multi-threading pool
@@ -172,24 +179,31 @@ class Database:
             self, scraped_artist_csv_list, current_scraped_artist_csv, scraped_album_csv_list,
             current_scraped_album_csv, artist_urn
     ):
-        # logger.info('Starting feat scraping for every album where artist %s appears.', artist_urn)
         # artist = self.spotify.get_artist_by_id(artist_urn)
+        # logger.info('Testing if artist %s has already been scraped.', artist_urn)
         if not check_artist_is_scraped(scraped_artist_csv_list, artist_urn):
+            logger.info('Artist %s has not yet been scraped.', artist_urn)
             # Get artist's albums
+            # logger.info('Getting artist %s albums.', artist_urn)
             albums = self.spotify.get_artist_albums(artist_urn)
+            # logger.info('Got artist %s albums.', artist_urn)
+
+            for album in albums:
+                self.create_from_album(scraped_album_csv_list, current_scraped_album_csv, artist_urn, album)
+
             # Multi-threading pool
-            pool = ThreadPool(2)
-            results = pool.starmap(
-                self.create_from_album,
-                zip(
-                    itertools.repeat(scraped_album_csv_list),
-                    itertools.repeat(current_scraped_album_csv),
-                    itertools.repeat(artist_urn),
-                    albums
-                )
-            )
-            pool.close()
-            pool.join()
+            # pool = ThreadPool(2)
+            # results = pool.starmap(
+            #     self.create_from_album,
+            #     zip(
+            #         itertools.repeat(scraped_album_csv_list),
+            #         itertools.repeat(current_scraped_album_csv),
+            #         itertools.repeat(artist_urn),
+            #         albums
+            #     )
+            # )
+            # pool.close()
+            # pool.join()
             write_scraped_artist(current_scraped_artist_csv, artist_urn)
             logger.info('Artist %s appended to scraped artists.', artist_urn)
         else:
@@ -234,20 +248,28 @@ class Database:
                     scraped_artists_urn_list=scraped_artists
                 )
 
-                # Multi-threading pool
-                pool = ThreadPool(2)
-                results = pool.starmap(
-                    self.create_from_artist,
-                    zip(
-                        itertools.repeat([scraped_artists_csv + "_" + str(k) + ".csv" for k in range(i+2)]),
-                        itertools.repeat(scraped_artists_csv + "_" + str(i + 1) + ".csv"),
-                        itertools.repeat([scraped_albums_csv + "_" + str(k) + ".csv" for k in range(i+2)]),
-                        itertools.repeat(scraped_albums_csv + "_" + str(i + 1) + ".csv"),
-                        linked_artists
+                for linked_artist in linked_artists:
+                    self.create_from_artist(
+                        [scraped_artists_csv + "_" + str(k) + ".csv" for k in range(i + 2)],
+                        scraped_artists_csv + "_" + str(i + 1) + ".csv",
+                        [scraped_albums_csv + "_" + str(k) + ".csv" for k in range(i + 2)],
+                        scraped_albums_csv + "_" + str(i + 1) + ".csv",
+                        linked_artist
                     )
-                )
-                pool.close()
-                pool.join()
+                # Multi-threading pool
+                # pool = ThreadPool(2)
+                # results = pool.starmap(
+                #     self.create_from_artist,
+                #     zip(
+                #         itertools.repeat([scraped_artists_csv + "_" + str(k) + ".csv" for k in range(i+2)]),
+                #         itertools.repeat(scraped_artists_csv + "_" + str(i + 1) + ".csv"),
+                #         itertools.repeat([scraped_albums_csv + "_" + str(k) + ".csv" for k in range(i+2)]),
+                #         itertools.repeat(scraped_albums_csv + "_" + str(i + 1) + ".csv"),
+                #         linked_artists
+                #     )
+                # )
+                # pool.close()
+                # pool.join()
 
     def delete_duplicate_artist(self):
         self.graph.delete_duplicate_artists()

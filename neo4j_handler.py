@@ -154,9 +154,10 @@ class Neo4JHandler:
             """
             UNWIND $feat_info_list as feat 
             UNWIND feat.featuring_artists as ft_artist
-            MERGE (:Artist {name: ft_artist.artist_name, urn:ft_artist.artist_id})
+            MERGE (a:Artist  {urn:ft_artist.artist_id})
+            ON CREATE SET a.name = ft_artist.artist_name
             """,
-            feat_info_list= feat_info_list
+            feat_info_list=feat_info_list
         )
 
         result = tx.run(
