@@ -20,14 +20,19 @@ class Neo4JHandler:
             feat = session.write_transaction(self._create_feat, urn1, urn2, track_id, track_name, track_date)
             return feat
 
+    def create_multiple_feats(self, feat_info_list):
+        with self.driver.session() as session:
+            feat = session.write_transaction(self._create_multiple_feats, feat_info_list)
+            return feat
+
     def merge_genre(self, genre):
         with self.driver.session() as session:
             genre = session.write_transaction(self._merge_genre, genre)
             return genre
 
-    def merge_label(self, label):
+    def merge_label(self, label, artist):
         with self.driver.session() as session:
-            label = session.write_transaction(self._merge_label, label)
+            label = session.write_transaction(self._merge_label, label, artist)
             return label
 
     def set_genre_artist(self, genre_name, artist_urn):
@@ -76,6 +81,10 @@ class Neo4JHandler:
     def delete_nodes_without_label(self):
         with self.driver.session() as session:
             session.write_transaction(self._delete_nodes_without_label)
+
+    def set_constraints(self):
+        with self.driver.session() as session:
+            session.write_transaction(self._set_constraints)
 
     def get_artists_pdf_from_ids(self, artists_id_list):
         query = """
@@ -137,6 +146,30 @@ class Neo4JHandler:
             track_name=track_name,
             track_date=track_date
         )
+        return [row[0] for row in result]\
+
+    @staticmethod
+    def _create_multiple_feats(tx, feat_info_list):
+        result = tx.run(
+            """
+            UNWIND $feat_info_list as feat 
+            UNWIND feat.featuring_artists as ft_artist
+            MERGE (:Artist {name: ft_artist.artist_name, urn:ft_artist.artist_id})
+            """,
+            feat_info_list= feat_info_list
+        )
+
+        result = tx.run(
+            """
+            UNWIND $feat_info_list as feat WITH apoc.coll.combinations(feat.featuring_artists, 2) as combinations, feat
+            UNWIND combinations as comb
+            MATCH (a:Artist {name: comb[0].artist_name, urn:comb[0].artist_id})
+            MATCH (b:Artist {name: comb[1].artist_name, urn:comb[1].artist_id})
+            MERGE (a)-[:FEAT {track_name: feat.track_name, track_id: feat.track_id, track_date: feat.track_date}]->(b)
+            RETURN 'Feat created.'
+            """,
+            feat_info_list=feat_info_list
+        )
         return [row[0] for row in result]
 
     @staticmethod
@@ -149,11 +182,18 @@ class Neo4JHandler:
         return [row[0] for row in result]
 
     @staticmethod
-    def _merge_label(tx, label):
+    def _merge_label(tx, label, artist):
         result = tx.run(
             "MERGE (l:Label {name: $label}) "
             "RETURN l.name + ' merged.'",
-            label=label
+            label=label,
+        )
+        result = tx.run(
+            "MATCH (l:Label {name: $label}) "
+            "MATCH (a:Artist {urn: $artist})"
+            "MERGE (a)-[:LABEL]->(l)",
+            label=label,
+            artist=artist
         )
         return [row[0] for row in result]
 
@@ -244,13 +284,26 @@ class Neo4JHandler:
             "UNWIND artists[1..] AS artist "
             "DETACH DELETE artist "
         )
-        return [row[0] for row in result]@staticmethod
+        return [row[0] for row in result]
 
     @staticmethod
     def _delete_nodes_without_label(tx):
         result = tx.run(
             "MATCH (n) WHERE size(labels(n)) = 0 "
             "DETACH DELETE n "
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    def _set_constraints(tx):
+        result = tx.run(
+            "CREATE CONSTRAINT ON (a:Artist) ASSERT a.urn IS UNIQUE "
+        )
+        result = tx.run(
+            "CREATE CONSTRAINT ON (g:Genre) ASSERT g.name IS UNIQUE "
+        )
+        result = tx.run(
+            "CREATE CONSTRAINT ON (l:Label) ASSERT l.name IS UNIQUE "
         )
         return [row[0] for row in result]
 
