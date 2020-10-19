@@ -191,37 +191,66 @@ class Database:
 
         logger.info('Reset done.')
 
-    def expand_from_artist(self, output_feat, output_label, output_genre, output_linked_artists, artist_urn, nb_hops):
+    def expand_from_artist(
+            self, output_feat, output_label, output_genre, output_linked_artists, artist_urn, nb_hops,
+            redo_from_hop=None, last_urn_scraped=None
+    ):
 
-        # Initiate with first artist scraping
-        initialize_linked_artists_csv(nb_hops, output_linked_artists, artist_urn)
-        logger.info("==========================================================================")
-        logger.info("=                                  HOP #0                                =")
-        logger.info("==========================================================================")
-        self.create_from_artist( output_label, output_feat, output_genre, output_linked_artists + "_1", artist_urn)
+        if not redo_from_hop:
+            # Initiate with first artist scraping
+            initialize_linked_artists_csv(nb_hops, output_linked_artists, artist_urn)
+            logger.info("==========================================================================")
+            logger.info("=                                  HOP #0                                =")
+            logger.info("==========================================================================")
+            self.create_from_artist(output_label, output_feat, output_genre, output_linked_artists + "_1", artist_urn)
 
-        # Hop on and scrape on
-        for i in range(1, nb_hops):
-            logger.info("==========================================================================")
-            logger.info("=                                  HOP #%s                                =", str(i))
-            logger.info("==========================================================================")
-            # Isolate artists already scraped
-            scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
-            for k in range(1, i-1):
-                scraped_artists = scraped_artists.append(
-                    pd.read_csv(output_linked_artists + "_" + str(k) + ".csv").drop_duplicates()
-                )
-            # Get artists to scrap
-            linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
-            linked_artists = pd.concat([linked_artists, scraped_artists]).drop_duplicates(keep=False).values.tolist()
-            for urn in linked_artists:
-                self.create_from_artist(
-                    output_label,
-                    output_feat,
-                    output_genre,
-                    output_linked_artists + "_" + str(i+1),
-                    urn[0]
-                )
+            # Hop on and scrape on
+            for i in range(1, nb_hops):
+                logger.info("==========================================================================")
+                logger.info("=                                  HOP #%s                                =", str(i))
+                logger.info("==========================================================================")
+                # Isolate artists already scraped
+                scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
+                for k in range(1, i-1):
+                    scraped_artists = scraped_artists.append(
+                        pd.read_csv(output_linked_artists + "_" + str(k) + ".csv").drop_duplicates()
+                    )
+                # Get artists to scrap
+                linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
+                linked_artists = pd.concat([linked_artists, scraped_artists]).drop_duplicates(keep=False).values.tolist()
+                for urn in linked_artists:
+                    self.create_from_artist(
+                        output_label,
+                        output_feat,
+                        output_genre,
+                        output_linked_artists + "_" + str(i+1),
+                        urn[0]
+                    )
+        if redo_from_hop:
+            # Hop on and scrape on
+            for i in range(redo_from_hop, nb_hops):
+                logger.info("==========================================================================")
+                logger.info("=                                  HOP #%s                                =", str(i))
+                logger.info("==========================================================================")
+                # Isolate artists already scraped
+                scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
+                for k in range(1, i - 1):
+                    scraped_artists = scraped_artists.append(
+                        pd.read_csv(output_linked_artists + "_" + str(k) + ".csv").drop_duplicates()
+                    )
+                # Get artists to scrap
+                linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
+                linked_artists = pd.concat([linked_artists, scraped_artists]).drop_duplicates(keep=False)
+                linked_artists = linked_artists[(linked_artists.urn == last_urn_scraped).idxmax():]
+                linked_artists = linked_artists.values.tolist()
+                for urn in linked_artists:
+                    self.create_from_artist(
+                        output_label,
+                        output_feat,
+                        output_genre,
+                        output_linked_artists + "_" + str(i + 1),
+                        urn[0]
+                    )
 
     def delete_duplicate_artist(self):
         self.graph.delete_duplicate_artists()
@@ -238,7 +267,16 @@ if __name__ == "__main__":
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
 
-    db.reset()
+    # db.reset()
+
+    # db.expand_from_artist(
+    #     output_feat="scraping_history/feats.csv",
+    #     output_label="scraping_history/labels.csv",
+    #     output_genre="scraping_history/genres.csv",
+    #     output_linked_artists="scraping_history/linked_artists",
+    #     nb_hops=5,
+    #     artist_urn="5gs4Sm2WQUkcGeikMcVHbh"
+    # )
 
     db.expand_from_artist(
         output_feat="scraping_history/feats.csv",
@@ -246,16 +284,10 @@ if __name__ == "__main__":
         output_genre="scraping_history/genres.csv",
         output_linked_artists="scraping_history/linked_artists",
         nb_hops=5,
-        artist_urn="5gs4Sm2WQUkcGeikMcVHbh"
+        artist_urn="5gs4Sm2WQUkcGeikMcVHbh",
+        redo_from_hop=2,
+        last_urn_scraped='5tth2a3v0sWwV1C7bApBdX'
     )
-
-    # db.create_from_artist(
-    #     output_feat="scraping_history/feats.csv",
-    #     output_label="scraping_history/labels.csv",
-    #     output_genre="scraping_history/genres.csv",
-    #     output_linked_artists="scraping_history/linked_artists_1",
-    #     artist_urn="5gs4Sm2WQUkcGeikMcVHbh"
-    # )
 
     genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
     feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
