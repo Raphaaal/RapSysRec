@@ -1,3 +1,4 @@
+import io
 from itertools import combinations
 import neo4j
 from history import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album, \
@@ -8,6 +9,9 @@ import logging
 from multiprocessing.dummy import Pool as ThreadPool
 import itertools
 from pprint import pprint
+import csv
+import json
+import pandas as pd
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -15,6 +19,82 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('database')
 # logger.propagate = False<
+
+
+def add_track_date(featurings, date):
+    for feat in featurings:
+        feat['track_date'] = str(date)
+    return featurings
+
+
+def write_album_to_csv(featurings, csv_path):
+    with io.open(csv_path, 'a', newline='', encoding='utf-8') as f:
+        csv_writer = csv.writer(f)
+        for feat in featurings:
+            csv_writer.writerow(
+                [
+                    feat["artist_urn"],
+                    feat["artist_name"],
+                    feat["track_name"],
+                    feat["track_id"],
+                    feat['track_date'],
+                    feat["featuring_artist_urn"],
+                    feat["featuring_artist_name"]
+                ]
+            )
+
+
+def write_linked_artists_to_csv(featurings, artist_urn, output_linked_artists):
+    with io.open(output_linked_artists, 'a', newline='', encoding='utf-8') as f:
+        csv_writer = csv.writer(f)
+        for feat in featurings:
+            if feat["artist_urn"] == artist_urn:
+                csv_writer.writerow(
+                    [
+                        feat["featuring_artist_urn"]
+                    ]
+                )
+            else:
+                csv_writer.writerow(
+                    [
+                        feat["artist_urn"]
+                    ]
+                )
+
+
+def initialize_linked_artists_csv(nb_hops, output_linked_artists, first_artist_urn):
+    for i in range(nb_hops+1):
+        truncate_file(output_linked_artists + "_" + str(i) + ".csv")
+        with io.open(output_linked_artists + "_" + str(i) + ".csv", 'a', newline='', encoding='utf-8') as f:
+            csv_writer = csv.writer(f)
+            csv_writer.writerow(["urn"])
+            if i == 0:
+                csv_writer.writerow([first_artist_urn])
+
+
+def write_label_to_csv(label, csv_path):
+    with io.open(csv_path, 'a', newline='', encoding='utf-8') as f:
+        csv_writer = csv.writer(f)
+        csv_writer.writerow(
+            [
+                label["artist_urn"],
+                label["label"]
+            ]
+        )
+
+
+def write_genre_to_csv(genres, csv_path):
+    with io.open(csv_path, 'a', newline='', encoding='utf-8') as f:
+        csv_writer = csv.writer(f)
+        for genre in genres:
+            csv_writer.writerow(
+                [
+                    genre["artist_urn"],
+                    genre['artist_name'],
+                    genre['artist_popularity'],
+                    genre["genre"]
+                ]
+            )
 
 
 class Database:
@@ -34,242 +114,114 @@ class Database:
             password="root"
         )
 
-    # def create_genres(self, urn, artist, genre):
-    #     if genre:
-    #         self.graph.merge_genre(genre)
-    #         already_linked_artist_genres = self.graph.get_genre_artist(genre, artist)
-    #         if not already_linked_artist_genres:
-    #             self.graph.set_genre_artist(genre_name=genre, artist_urn=urn)
-    #             # logger.info('Artist %s linked to genre %s.', urn, genre)
+    def create_from_album(self, output_label, output_feat, output_linked_artists, album, artist_urn):
+        # Featurings
+        featurings = self.spotify.get_album_featurings(album)
+        if featurings:
+            featurings = add_track_date(featurings, album['release_date'])
+            write_album_to_csv(featurings, output_feat)
+            write_linked_artists_to_csv(featurings, artist_urn, output_linked_artists + ".csv")
 
-    # def create_feat_artist(self, album, artist, ft_artist):
-    #     # Create artists if needed
-    #     artist_test = self.graph.get_artist(urn=ft_artist['artist_id'])
-    #     if not artist_test:
-    #         name = ft_artist['artist_name']
-    #         urn = ft_artist['artist_id']
-    #         artist_object = self.spotify.get_artist_info(
-    #             self.spotify.get_artist_by_id(ft_artist['artist_id'])
-    #         )
-    #         popularity = artist_object['artist_popularity']
-    #         self.graph.merge_artist(name, urn, popularity)
-    #         logger.info('Artist %s (%s) did not exist. Created in DB', name, urn)
-    #
-    #         # Merge and link artists' genres
-    #         artist_genres = artist_object['artist_genres']
-    #         for genre in artist_genres:
-    #             self.create_genres(urn=urn, artist=artist, genre=genre)
-    #         # Multi-threading pool -> Seemed to duplicate genre and links to genres
-    #         # pool = ThreadPool(2)
-    #         # results = pool.starmap(
-    #         #     self.create_genres,
-    #         #     zip(
-    #         #         itertools.repeat(urn),
-    #         #         itertools.repeat(artist),
-    #         #         artist_genres
-    #         #     )
-    #         # )
-    #         # pool.close()
-    #         # pool.join()
-    #
-    #     # Create artist-label link if needed
-    #     if not self.graph.get_label_artist(
-    #             label_name=album['label'],
-    #             album_date=album['release_date'],
-    #             artist_urn=ft_artist['artist_id']
-    #     ):
-    #         self.graph.set_label_artist(
-    #             label_name=album['label'],
-    #             album_date=album['release_date'],
-    #             artist_urn=ft_artist['artist_id']
-    #         )
-    #         # logger.info(
-    #         #     'Artist %s linked to label %s at date %s',
-    #         #     ft_artist['artist_id'], album['label'], album['release_date']
-    #         # )
+        # Label
+        label = {
+            'artist_urn': artist_urn,
+            'label': album['label']
+        }
+        write_label_to_csv(label, output_label)
 
-    # def create_from_feat(self, artist, album, feat):
-    #     # Get featuring artists
-    #     artists_id_list = []
-    #     for ft_artist in feat['featuring_artists']:
-    #         artists_id_list.append(ft_artist['artist_id'])
-    #
-    #     # Multi-threading pool
-    #     pool = ThreadPool(2)
-    #     results = pool.starmap(
-    #         self.create_feat_artist,
-    #         zip(
-    #             itertools.repeat(album),
-    #             itertools.repeat(artist),
-    #             feat['featuring_artists']
-    #         )
-    #     )
-    #     pool.close()
-    #     pool.join()
-    #
-    #     # Create feat if needed
-    #     feat_test = False
-    #     for artists_pair in list(combinations(artists_id_list, 2)):
-    #         feat_test = self.graph.get_feat(
-    #             track_id=feat['track_id'],
-    #             track_name=feat['track_name'],
-    #             artist1_urn=artists_pair[0],
-    #             artist2_urn=artists_pair[1]
-    #         )
-    #         if feat_test:
-    #             break
-    #     if not feat_test:
-    #         # Handle feats with more than 2 artists
-    #         for artists_pair in list(combinations(artists_id_list, 2)):
-    #             self.graph.create_feat(
-    #                 urn1=artists_pair[0],
-    #                 urn2=artists_pair[1],
-    #                 track_id=feat['track_id'],
-    #                 track_name=feat['track_name'],
-    #                 track_date=feat['track_date']
-    #             )
-    #             # logger.info(
-    #             #     'Feat %s (%s) did not exist. Created in DB',
-    #             #     feat['track_name'], feat['track_id']
-    #             # )
+    def create_from_artist(self, output_label, output_feat, output_genre, output_linked_artists, artist_urn):
+        # Albums featuring info
+        albums = self.spotify.get_artist_albums(artist_urn)
+        for album in albums:
+            self.create_from_album(output_label, output_feat, output_linked_artists, album, artist_urn)
 
-    def create_from_album(self, scraped_album_csv_list, scraped_album_csv, artist, album):
-        if album:
-            # logger.info('Testing if album %s has already been scraped.', album['id'])
-            if not check_album_is_scraped(scraped_album_csv=scraped_album_csv_list, album_urn=album['id']):
-                # logger.info('Album %s has not already been scraped.', album['id'])
+        # Genres
+        artist = self.spotify.get_artist_info(self.spotify.get_artist_by_id(artist_urn))
+        genres = [
+            {
+                'artist_urn': artist_urn,
+                'artist_name': artist['artist_name'],
+                'artist_popularity': artist['artist_popularity'],
+                'genre': genre
+            } for genre in artist['artist_genres']
+        ]
+        write_genre_to_csv(genres, output_genre)
 
-                # Get album's featuring info
-                # logger.info('Getting album %s featurings.', album['id'])
-                album_feat_info = self.spotify.get_album_ft_tracks(album)
-                # logger.info('Got album %s featurings.', album['id'])
-                if album_feat_info:
-                    # Merge album label
-                    # logger.info('Creating album %s label.', album['id'])
-                    if album['label']:
-                        self.graph.merge_label(label=album['label'], artist=artist)
-                    # logger.info('Created album %s label.', album['id'])
+        logger.info('Artist %s scraped.', artist['artist_name'])
 
-                    # logger.info('Creating album %s featurings.', album['id'])
-                    self.graph.create_multiple_feats(album_feat_info)
-                    # logger.info('Created album %s featurings.', album['id'])
-                    # TODO: misssing genre creations (and their relationships to artists)
+    def reset(self):
+        truncate_file("scraping_history/feats.csv")
+        album = [
+            {
+                    "artist_urn": "artist_urn",
+                    "artist_name": "artist_name",
+                    "track_name": "track_name",
+                    "track_id": "track_id",
+                    "track_date": "track_date",
+                    "featuring_artist_urn": "featuring_artist_urn",
+                    "featuring_artist_name": "featuring_artist_name"
+                }
+        ]
+        write_album_to_csv(album, "scraping_history/feats.csv")
 
-                    # Multi-threading pool
-                    # pool = ThreadPool(2)
-                    # results = pool.starmap(
-                    #     self.create_from_feat,
-                    #     zip(
-                    #         itertools.repeat(artist),
-                    #         itertools.repeat(album),
-                    #         album_feat_info
-                    #     )
-                    # )
-                    # pool.close()
-                    # pool.join()
+        truncate_file("scraping_history/genres.csv")
+        genre = [
+            {
+                'artist_urn': 'artist_urn',
+                'artist_name': 'artist_name',
+                'artist_popularity': 'artist_popularity',
+                'genre': 'genre'
+            }
+        ]
+        write_genre_to_csv(genre, "scraping_history/genres.csv")
 
-                # else:
-                    # logger.info('No feat info in album %s.', album['id'])
-                write_scraped_album(scraped_albums_csv=scraped_album_csv, album_urn=album['id'])
-                # logger.info('Album %s appended to scraped albums.', album['id'])
-            # else:
-            #     logger.info('Album %s already present in scraped albums.', album['id'])
+        truncate_file("scraping_history/labels.csv")
+        label = {
+            'artist_urn': 'artist_urn',
+            'label': 'label'
+        }
+        write_label_to_csv(label, "scraping_history/labels.csv")
 
-    def create_from_artist(
-            self, scraped_artist_csv_list, current_scraped_artist_csv, scraped_album_csv_list,
-            current_scraped_album_csv, artist_urn
-    ):
-        # artist = self.spotify.get_artist_by_id(artist_urn)
-        # logger.info('Testing if artist %s has already been scraped.', artist_urn)
-        if not check_artist_is_scraped(scraped_artist_csv_list, artist_urn):
-            logger.info('Artist %s has not yet been scraped.', artist_urn)
-            # Get artist's albums
-            # logger.info('Getting artist %s albums.', artist_urn)
-            albums = self.spotify.get_artist_albums(artist_urn)
-            # logger.info('Got artist %s albums.', artist_urn)
+        self.graph.truncate()
+        try:
+            self.graph.set_constraints()
+            logger.info("DB constraints set.")
+        except neo4j.exceptions.ClientError:
+            logger.info("Exception during DB constraints setting.")
 
-            for album in albums:
-                self.create_from_album(scraped_album_csv_list, current_scraped_album_csv, artist_urn, album)
+        logger.info('Reset done.')
 
-            # Multi-threading pool
-            # pool = ThreadPool(2)
-            # results = pool.starmap(
-            #     self.create_from_album,
-            #     zip(
-            #         itertools.repeat(scraped_album_csv_list),
-            #         itertools.repeat(current_scraped_album_csv),
-            #         itertools.repeat(artist_urn),
-            #         albums
-            #     )
-            # )
-            # pool.close()
-            # pool.join()
-            write_scraped_artist(current_scraped_artist_csv, artist_urn)
-            logger.info('Artist %s appended to scraped artists.', artist_urn)
-        else:
-            logger.info('Artist %s already present in scraped artists.', artist_urn)
-
-    def expand_from_artist(self, artist_urn, scraped_artists_csv, scraped_albums_csv, nb_hops, reset=False):
-
-        if reset:
-            # Clear scraping history files and DB
-            for i in range(nb_hops+1):
-                truncate_file(scraped_artists_csv + "_" + str(i) + ".csv")
-                truncate_file(scraped_albums_csv + "_" + str(i) + ".csv")
-            self.graph.truncate()
-            logger.info("Truncated DB and history files.")
-            try:
-                self.graph.set_constraints()
-                logger.info("DB constraints set.")
-            except neo4j.exceptions.ClientError:
-                logger.info("Exception during DB constraints setting.")
+    def expand_from_artist(self, output_feat, output_label, output_genre, output_linked_artists, artist_urn, nb_hops):
 
         # Initiate with first artist scraping
+        initialize_linked_artists_csv(nb_hops, output_linked_artists, artist_urn)
         logger.info("==========================================================================")
         logger.info("=                                  HOP #0                                =")
         logger.info("==========================================================================")
-        self.create_from_artist(
-            [scraped_artists_csv + "_0.csv"],
-            scraped_artists_csv + "_0.csv",
-            [scraped_albums_csv + "_0.csv"],
-            scraped_albums_csv + "_0.csv",
-            artist_urn
-        )
+        self.create_from_artist( output_label, output_feat, output_genre, output_linked_artists + "_1", artist_urn)
 
         # Hop on and scrape on
-        for i in range(nb_hops):
+        for i in range(1, nb_hops):
             logger.info("==========================================================================")
-            logger.info("=                                  HOP #%s                                =", str(i+1))
+            logger.info("=                                  HOP #%s                                =", str(i))
             logger.info("==========================================================================")
-            scraped_artists = get_scraped_artists([scraped_artists_csv + "_" + str(k) + ".csv" for k in range(i+2)])
-            for artist in scraped_artists:
-                linked_artists = self.graph.get_unscraped_linked_artists(
-                    artist_urn=artist,
-                    scraped_artists_urn_list=scraped_artists
+            # Isolate artists already scraped
+            scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
+            for k in range(1, i-1):
+                scraped_artists = scraped_artists.append(
+                    pd.read_csv(output_linked_artists + "_" + str(k) + ".csv").drop_duplicates()
                 )
-
-                for linked_artist in linked_artists:
-                    self.create_from_artist(
-                        [scraped_artists_csv + "_" + str(k) + ".csv" for k in range(i + 2)],
-                        scraped_artists_csv + "_" + str(i + 1) + ".csv",
-                        [scraped_albums_csv + "_" + str(k) + ".csv" for k in range(i + 2)],
-                        scraped_albums_csv + "_" + str(i + 1) + ".csv",
-                        linked_artist
-                    )
-                # Multi-threading pool
-                # pool = ThreadPool(2)
-                # results = pool.starmap(
-                #     self.create_from_artist,
-                #     zip(
-                #         itertools.repeat([scraped_artists_csv + "_" + str(k) + ".csv" for k in range(i+2)]),
-                #         itertools.repeat(scraped_artists_csv + "_" + str(i + 1) + ".csv"),
-                #         itertools.repeat([scraped_albums_csv + "_" + str(k) + ".csv" for k in range(i+2)]),
-                #         itertools.repeat(scraped_albums_csv + "_" + str(i + 1) + ".csv"),
-                #         linked_artists
-                #     )
-                # )
-                # pool.close()
-                # pool.join()
+            # Get artists to scrap
+            linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
+            linked_artists = pd.concat([linked_artists, scraped_artists]).drop_duplicates(keep=False).values.tolist()
+            for urn in linked_artists:
+                self.create_from_artist(
+                    output_label,
+                    output_feat,
+                    output_genre,
+                    output_linked_artists + "_" + str(i+1),
+                    urn[0]
+                )
 
     def delete_duplicate_artist(self):
         self.graph.delete_duplicate_artists()
@@ -279,24 +231,34 @@ class Database:
 
 
 if __name__ == "__main__":
-
-    # TODO: Améliorer vitesse d'exécution (pool nb ? moins de requêtes à Spotify / à la DB ?)
-    # TODO: changer les CREATE pour des MERGE au cas où
-
     db = Database(
         neo4j_user="neo4j",
         neo4j_password="root",
         spotify_client_id="28d60111ea634effb71f87304bed9285",
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
+
+    db.reset()
+
     db.expand_from_artist(
-        artist_urn="5gs4Sm2WQUkcGeikMcVHbh",
-        scraped_artists_csv="scraping_history/scraped_artists",
-        scraped_albums_csv="scraping_history/scraped_albums",
-        nb_hops=4,
-        reset=False
+        output_feat="scraping_history/feats.csv",
+        output_label="scraping_history/labels.csv",
+        output_genre="scraping_history/genres.csv",
+        output_linked_artists="scraping_history/linked_artists",
+        nb_hops=5,
+        artist_urn="5gs4Sm2WQUkcGeikMcVHbh"
     )
-    # Multi-threading may create duplicate artists because of concurrent scraping and creation
-    db.delete_duplicate_artist()
-    db.delete_nodes_without_label()
+
+    # db.create_from_artist(
+    #     output_feat="scraping_history/feats.csv",
+    #     output_label="scraping_history/labels.csv",
+    #     output_genre="scraping_history/genres.csv",
+    #     output_linked_artists="scraping_history/linked_artists_1",
+    #     artist_urn="5gs4Sm2WQUkcGeikMcVHbh"
+    # )
+
+    genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
+    feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
+    labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
+
 
