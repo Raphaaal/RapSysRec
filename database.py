@@ -3,7 +3,7 @@ from itertools import combinations
 import neo4j
 from history import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album, \
     get_scraped_artists, truncate_file
-from neo4j_handler import Neo4JHandler
+# from neo4j_handler import Neo4JHandler
 from spotify_loader import SpotifyLoader
 import logging
 from multiprocessing.dummy import Pool as ThreadPool
@@ -99,20 +99,22 @@ def write_genre_to_csv(genres, csv_path):
 
 class Database:
 
-    def __init__(self, neo4j_user, neo4j_password, spotify_client_id, spotify_client_secret):
-        self.neo4j_user = neo4j_user
-        self.neo4j_password = neo4j_password
+    def __init__(self,
+                 # neo4j_user, neo4j_password,
+                 spotify_client_id, spotify_client_secret):
+        # self.neo4j_user = neo4j_user
+        # self.neo4j_password = neo4j_password
         self.spotify_client_id = spotify_client_id
         self.spotify_client_secret = spotify_client_secret
         self.spotify = SpotifyLoader(
             client_id="28d60111ea634effb71f87304bed9285",
             client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
         )
-        self.graph = Neo4JHandler(
-            uri="bolt://localhost:7687",
-            user="neo4j",
-            password="root"
-        )
+        # self.graph = Neo4JHandler(
+        #     uri="bolt://localhost:7687",
+        #     user="neo4j",
+        #     password="root"
+        # )
 
     def create_from_album(self, output_label, output_feat, output_linked_artists, album, artist_urn):
         # Featurings
@@ -211,7 +213,7 @@ class Database:
                 logger.info("==========================================================================")
                 # Isolate artists already scraped
                 scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
-                for k in range(1, i-1):
+                for k in range(1, i):
                     scraped_artists = scraped_artists.append(
                         pd.read_csv(output_linked_artists + "_" + str(k) + ".csv").drop_duplicates()
                     )
@@ -234,21 +236,22 @@ class Database:
                 logger.info("==========================================================================")
                 # Isolate artists already scraped
                 scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
-                for k in range(1, i - 1):
+                for k in range(1, i):
                     scraped_artists = scraped_artists.append(
                         pd.read_csv(output_linked_artists + "_" + str(k) + ".csv").drop_duplicates()
                     )
                 # Get artists to scrap
                 linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
                 linked_artists = pd.concat([linked_artists, scraped_artists]).drop_duplicates(keep=False)
-                linked_artists = linked_artists[(linked_artists.urn == last_urn_scraped).idxmax():]
+                if last_urn_scraped:
+                    linked_artists = linked_artists[(linked_artists.urn == last_urn_scraped).idxmax():]
                 linked_artists = linked_artists.values.tolist()
                 for urn in linked_artists:
                     self.create_from_artist(
                         output_label,
                         output_feat,
                         output_genre,
-                        output_linked_artists + "_" + str(i + 1),
+                        output_linked_artists + "_" + str(i+1),
                         urn[0]
                     )
 
@@ -261,8 +264,8 @@ class Database:
 
 if __name__ == "__main__":
     db = Database(
-        neo4j_user="neo4j",
-        neo4j_password="root",
+        # neo4j_user="neo4j",
+        # neo4j_password="root",
         spotify_client_id="28d60111ea634effb71f87304bed9285",
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
@@ -285,12 +288,12 @@ if __name__ == "__main__":
         output_linked_artists="scraping_history/linked_artists",
         nb_hops=5,
         artist_urn="5gs4Sm2WQUkcGeikMcVHbh",
-        redo_from_hop=2,
-        last_urn_scraped='5tth2a3v0sWwV1C7bApBdX'
+        redo_from_hop=3,
+        last_urn_scraped=None
     )
 
-    genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
-    feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
-    labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
+    # genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
+    # feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
+    # labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
 
 
