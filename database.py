@@ -264,8 +264,8 @@ class Database:
 
 if __name__ == "__main__":
     db = Database(
-        # neo4j_user="neo4j",
-        # neo4j_password="root",
+        neo4j_user="neo4j",
+        neo4j_password="root",
         spotify_client_id="28d60111ea634effb71f87304bed9285",
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
@@ -277,22 +277,22 @@ if __name__ == "__main__":
     #     output_label="scraping_history/labels.csv",
     #     output_genre="scraping_history/genres.csv",
     #     output_linked_artists="scraping_history/linked_artists",
-    #     nb_hops=5,
+    #     nb_hops=4,
     #     artist_urn="5gs4Sm2WQUkcGeikMcVHbh"
     # )
 
-    db.expand_from_artist(
-        output_feat="scraping_history/feats.csv",
-        output_label="scraping_history/labels.csv",
-        output_genre="scraping_history/genres.csv",
-        output_linked_artists="scraping_history/linked_artists",
-        nb_hops=5,
-        artist_urn="5gs4Sm2WQUkcGeikMcVHbh",
-        redo_from_hop=3,
-        last_urn_scraped=None
-    )
+    # db.expand_from_artist(
+    #     output_feat="scraping_history/feats.csv",
+    #     output_label="scraping_history/labels.csv",
+    #     output_genre="scraping_history/genres.csv",
+    #     output_linked_artists="scraping_history/linked_artists",
+    #     nb_hops=4,
+    #     artist_urn="5gs4Sm2WQUkcGeikMcVHbh",
+    #     redo_from_hop=3,
+    #     last_urn_scraped="2x6fya70OYIW6J2TZz25lQ"
+    # )
 
-    # genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
+    genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
     # feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
     # labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
 
