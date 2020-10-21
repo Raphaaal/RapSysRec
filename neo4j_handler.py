@@ -101,19 +101,22 @@ class Neo4JHandler:
     def create_genres(self, csv_path):
         path = "file:///" + csv_path
         with self.driver.session() as session:
-            result = session.write_transaction(self._create_genres_csv, path)
+            # result = session.write_transaction(self._create_genres_csv, path)
+            result = self._create_genres_csv(session, path)
             return result
 
     def create_feats(self, csv_path):
         path = "file:///" + csv_path
         with self.driver.session() as session:
-            result = session.write_transaction(self._create_feats_csv, path)
+            # result = session.write_transaction(self._create_feats_csv, path)
+            result = self._create_feats_csv(session, path)
             return result
 
     def create_labels(self, csv_path):
         path = "file:///" + csv_path
         with self.driver.session() as session:
-            result = session.write_transaction(self._create_labels_csv, path)
+            # result = session.write_transaction(self._create_labels_csv, path)
+            result = self._create_labels_csv(session, path)
             return result
 
     @staticmethod
@@ -327,9 +330,14 @@ class Neo4JHandler:
         return [row[0] for row in result]
 
     @staticmethod
-    def _create_genres_csv(tx, csv_path):
-        result = tx.run(
+    # def _create_genres_csv(tx, csv_path):
+    # Need open transactions for USING PERIODIC COMMIT to work
+    def _create_genres_csv(session, csv_path):
+        # result = tx.run(
+        result = session.run(
             """
+            USING PERIODIC COMMIT 100
+            
             LOAD CSV WITH HEADERS FROM $csv_path AS row
             WITH distinct row
             
@@ -346,9 +354,13 @@ class Neo4JHandler:
         return [row[0] for row in result]
 
     @staticmethod
-    def _create_feats_csv(tx, csv_path):
-        result = tx.run(
+    # def _create_feats_csv(tx, csv_path):
+    # Need open transactions for USING PERIODIC COMMIT to work
+    def _create_feats_csv(session, csv_path):
+        result = session.run(
             """
+            USING PERIODIC COMMIT 100
+            
             LOAD CSV WITH HEADERS FROM $csv_path AS row
             WITH distinct row
             
@@ -366,9 +378,14 @@ class Neo4JHandler:
         return [row[0] for row in result]
 
     @staticmethod
-    def _create_labels_csv(tx, csv_path):
-        result = tx.run(
+    # def _create_labels_csv(tx, csv_path):
+    # Need open transactions for USING PERIODIC COMMIT to work
+    def _create_labels_csv(session, csv_path):
+        # result = tx.run(
+        result = session.run(
             """
+            USING PERIODIC COMMIT 100
+            
             LOAD CSV WITH HEADERS FROM $csv_path AS row
             WITH distinct row
 
@@ -381,6 +398,7 @@ class Neo4JHandler:
             csv_path=csv_path
         )
         return [row[0] for row in result]
+
 
 if __name__ == "__main__":
     graph = Neo4JHandler("bolt://localhost:7687", "neo4j", "root")
