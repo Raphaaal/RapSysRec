@@ -98,6 +98,18 @@ def write_genre_to_csv(genres, csv_path):
             )
 
 
+def write_artist_to_csv(artist, csv_path):
+    with io.open(csv_path, 'a', newline='', encoding='utf-8') as f:
+        csv_writer = csv.writer(f)
+        csv_writer.writerow(
+            [
+                artist["artist_urn"],
+                artist["artist_name"],
+                artist["artist_popularity"]
+            ]
+        )
+
+
 class Database:
 
     def __init__(self,
@@ -133,7 +145,7 @@ class Database:
             }
             write_label_to_csv(label, output_label)
 
-    def create_from_artist(self, output_label, output_feat, output_genre, output_linked_artists, artist_urn):
+    def create_from_artist(self, output_artist, output_label, output_feat, output_genre, output_linked_artists, artist_urn):
         # Albums featuring info
         albums = self.spotify.get_artist_albums(artist_urn)
         for album in albums:
@@ -141,19 +153,38 @@ class Database:
 
         # Genres
         artist = self.spotify.get_artist_info(self.spotify.get_artist_by_id(artist_urn))
-        genres = [
-            {
-                'artist_urn': artist_urn,
-                'artist_name': artist['artist_name'],
-                'artist_popularity': artist['artist_popularity'],
-                'genre': genre
-            } for genre in artist['artist_genres']
-        ]
-        write_genre_to_csv(genres, output_genre)
+        if artist['artist_genres']:
+            genres = [
+                {
+                    'artist_urn': artist_urn,
+                    'artist_name': artist['artist_name'],
+                    'artist_popularity': artist['artist_popularity'],
+                    'genre': genre
+                } for genre in artist['artist_genres']
+            ]
+            write_genre_to_csv(genres, output_genre)
+
+        # Artist
+        artist_info = {
+            'artist_urn': artist_urn,
+            'artist_name': artist['artist_name'],
+            'artist_popularity': artist['artist_popularity'],
+        }
+        write_artist_to_csv(artist_info, output_artist)
 
         logger.info('Artist %s scraped.', artist['artist_name'])
 
     def reset(self):
+        truncate_file("scraping_history/artists.csv")
+        artist = [
+            {
+                'artist_urn': 'artist_urn',
+                'artist_name': 'artist_name',
+                'artist_popularity': 'artist_popularity'
+            }
+        ]
+        write_artist_to_csv(artist, "scraping_history/artists.csv")
+
         truncate_file("scraping_history/feats.csv")
         album = [
             {
@@ -196,7 +227,7 @@ class Database:
         logger.info('Reset done.')
 
     def expand_from_artist(
-            self, output_feat, output_label, output_genre, output_linked_artists, artist_urn, nb_hops,
+            self, output_artist, output_feat, output_label, output_genre, output_linked_artists, artist_urn, nb_hops,
             redo_from_hop=None, last_urn_scraped=None
     ):
 
@@ -224,6 +255,7 @@ class Database:
                 linked_artists = pd.concat([linked_artists, scraped_artists]).drop_duplicates(keep=False).values.tolist()
                 for urn in linked_artists:
                     self.create_from_artist(
+                        output_artist,
                         output_label,
                         output_feat,
                         output_genre,
@@ -250,6 +282,7 @@ class Database:
                 linked_artists = linked_artists.values.tolist()
                 for urn in linked_artists:
                     self.create_from_artist(
+                        output_artist,
                         output_label,
                         output_feat,
                         output_genre,
@@ -275,6 +308,7 @@ if __name__ == "__main__":
     # db.reset()
 
     # db.expand_from_artist(
+    #     output_artist="scraping_history/artists_.csv",
     #     output_feat="scraping_history/feats.csv",
     #     output_label="scraping_history/labels.csv",
     #     output_genre="scraping_history/genres.csv",
@@ -284,6 +318,7 @@ if __name__ == "__main__":
     # )
 
     # db.expand_from_artist(
+    #     output_artist="scraping_history/artists_.csv",
     #     output_feat="scraping_history/feats.csv",
     #     output_label="scraping_history/labels.csv",
     #     output_genre="scraping_history/genres.csv",
@@ -295,6 +330,10 @@ if __name__ == "__main__":
     # )
 
     post_treatment_scraping_history()
+
+    logger.info('Starting artists writing to DB')
+    genres = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
+    logger.info('Ended artists writing to DB')
 
     logger.info('Starting genres writing to DB')
     genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')

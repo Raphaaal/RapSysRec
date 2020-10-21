@@ -13,11 +13,11 @@ def drop_duplicates(path):
     df.to_csv(path, index=False)
 
 
-def count_scraped_artists(paths):
-    df = pd.read_csv(paths[0]).drop_duplicates()
+def count_scraped_artists(paths, urn_col):
+    df = pd.read_csv(paths[0])[urn_col].drop_duplicates()
     for path in paths:
         if path != paths[0]:
-            df = df.append(pd.read_csv(path).drop_duplicates())
+            df = df.append(pd.read_csv(path)[urn_col].drop_duplicates())
     df = df.drop_duplicates()
     length = len(df.index)
     return length
@@ -37,10 +37,10 @@ def post_treatment_scraping_history(
     # Counts
     paths_optimist = [output_linked_artists + '_' + str(i) + '.csv' for i in range(4)]
     paths_pessimist = [output_linked_artists + '_' + str(i) + '.csv' for i in range(3)]
-    count_optimist = count_scraped_artists(paths_optimist)
-    count_pessimist = count_scraped_artists(paths_pessimist)
-    print("Linked artists: between " + str(count_pessimist) + " and " + str(count_optimist)  + " artists.")
-    print("Genres: " + str(count_scraped_artists([output_genres])) + " artists.")
-    print("Labels: " + str(count_scraped_artists([output_labels])) + " artists.")
+    count_optimist = count_scraped_artists(paths_optimist, urn_col='urn')
+    count_pessimist = count_scraped_artists(paths_pessimist, urn_col='urn')
+    print("Linked artists: between " + str(count_pessimist) + " and " + str(count_optimist) + " artists.")
+    print("Genres: " + str(count_scraped_artists([output_genres], urn_col='artist_urn')) + " artists.")
+    print("Labels: " + str(count_scraped_artists([output_labels], urn_col='artist_urn')) + " artists.")
 
 

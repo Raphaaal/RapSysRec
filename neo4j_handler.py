@@ -105,6 +105,13 @@ class Neo4JHandler:
             result = self._create_genres_csv(session, path)
             return result
 
+    def create_artists(self, csv_path):
+        path = "file:///" + csv_path
+        with self.driver.session() as session:
+            # result = session.write_transaction(self._create_genres_csv, path)
+            result = self._create_artists_csv(session, path)
+            return result
+
     def create_feats(self, csv_path):
         path = "file:///" + csv_path
         with self.driver.session() as session:
@@ -348,6 +355,25 @@ class Neo4JHandler:
             MERGE (g: Genre {name: row.genre})
             
             MERGE (a)-[:GENRE]->(g)
+            """,
+            csv_path=csv_path
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    # Need open transactions for USING PERIODIC COMMIT to work
+    def _create_artists_csv(session, csv_path):
+        # result = tx.run(
+        result = session.run(
+            """
+            USING PERIODIC COMMIT 100
+
+            LOAD CSV WITH HEADERS FROM $csv_path AS row
+            WITH distinct row
+
+            MERGE (a: Artist {urn: row.artist_urn})
+            ON CREATE SET a.name = row.artist_name, a.popularity = row.artist_popularity
+            ON MATCH SET a.name = row.artist_name, a.popularity = row.artist_popularity
             """,
             csv_path=csv_path
         )
