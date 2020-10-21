@@ -1,6 +1,6 @@
 from neo4j import GraphDatabase
 import pandas as pd
-
+import os
 
 class Neo4JHandler:
 
@@ -97,6 +97,34 @@ class Neo4JHandler:
             result = session.run(query, params)
             artists_names = pd.DataFrame([dict(record) for record in result])
         return artists_names
+
+    def create_genres(self, csv_path):
+        path = "file:///" + csv_path
+        with self.driver.session() as session:
+            # result = session.write_transaction(self._create_genres_csv, path)
+            result = self._create_genres_csv(session, path)
+            return result
+
+    def create_artists(self, csv_path):
+        path = "file:///" + csv_path
+        with self.driver.session() as session:
+            # result = session.write_transaction(self._create_genres_csv, path)
+            result = self._create_artists_csv(session, path)
+            return result
+
+    def create_feats(self, csv_path):
+        path = "file:///" + csv_path
+        with self.driver.session() as session:
+            # result = session.write_transaction(self._create_feats_csv, path)
+            result = self._create_feats_csv(session, path)
+            return result
+
+    def create_labels(self, csv_path):
+        path = "file:///" + csv_path
+        with self.driver.session() as session:
+            # result = session.write_transaction(self._create_labels_csv, path)
+            result = self._create_labels_csv(session, path)
+            return result
 
     @staticmethod
     def _merge_artist(tx, name, urn, popularity):
@@ -305,6 +333,95 @@ class Neo4JHandler:
         )
         result = tx.run(
             "CREATE CONSTRAINT ON (l:Label) ASSERT l.name IS UNIQUE "
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    # def _create_genres_csv(tx, csv_path):
+    # Need open transactions for USING PERIODIC COMMIT to work
+    def _create_genres_csv(session, csv_path):
+        # result = tx.run(
+        result = session.run(
+            """
+            USING PERIODIC COMMIT 100
+            
+            LOAD CSV WITH HEADERS FROM $csv_path AS row
+            WITH distinct row
+            
+            MERGE (a: Artist {urn: row.artist_urn})
+            ON CREATE SET a.name = row.artist_name, a.popularity = row.artist_popularity
+            ON MATCH SET a.name = row.artist_name, a.popularity = row.artist_popularity
+            
+            MERGE (g: Genre {name: row.genre})
+            
+            MERGE (a)-[:GENRE]->(g)
+            """,
+            csv_path=csv_path
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    # Need open transactions for USING PERIODIC COMMIT to work
+    def _create_artists_csv(session, csv_path):
+        # result = tx.run(
+        result = session.run(
+            """
+            USING PERIODIC COMMIT 100
+
+            LOAD CSV WITH HEADERS FROM $csv_path AS row
+            WITH distinct row
+
+            MERGE (a: Artist {urn: row.artist_urn})
+            ON CREATE SET a.name = row.artist_name, a.popularity = row.artist_popularity
+            ON MATCH SET a.name = row.artist_name, a.popularity = row.artist_popularity
+            """,
+            csv_path=csv_path
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    # def _create_feats_csv(tx, csv_path):
+    # Need open transactions for USING PERIODIC COMMIT to work
+    def _create_feats_csv(session, csv_path):
+        result = session.run(
+            """
+            USING PERIODIC COMMIT 100
+            
+            LOAD CSV WITH HEADERS FROM $csv_path AS row
+            WITH distinct row
+            
+            MERGE (a: Artist {urn: row.artist_urn})
+            ON CREATE SET a.name = row.artist_name
+            
+            MERGE (b: Artist {urn: row.featuring_artist_urn})
+            ON CREATE SET b.name = row.featuring_artist_name
+
+            MERGE (a)-[r:FEAT {track_id: row.track_id}]->(b)
+            ON CREATE SET r.track_name = row.track_name, r.track_date = row.track_date
+            """,
+            csv_path=csv_path
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    # def _create_labels_csv(tx, csv_path):
+    # Need open transactions for USING PERIODIC COMMIT to work
+    def _create_labels_csv(session, csv_path):
+        # result = tx.run(
+        result = session.run(
+            """
+            USING PERIODIC COMMIT 100
+            
+            LOAD CSV WITH HEADERS FROM $csv_path AS row
+            WITH distinct row
+
+            MATCH (a: Artist {urn: row.artist_urn})
+
+            MERGE (l: Label {name: row.label})
+
+            MERGE (a)-[:LABEL]->(l)
+            """,
+            csv_path=csv_path
         )
         return [row[0] for row in result]
 

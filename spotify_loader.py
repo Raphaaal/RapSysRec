@@ -15,27 +15,21 @@ logger = logging.getLogger('spotify_loader')
 # logger.propagate = False
 
 
-def get_track_ft_info(track, album_date):
-    # track = self.sp.track(track_id)
+def get_track_featurings(track):
+    track_featurings = []
     artists_list = track['artists']
     if len(artists_list) > 1:
-        # logger.info('Scraping track %s (%s)', track['name'], track['id'])
-        artists_objects_lists = []
-        for artist in artists_list:
-            artists_objects_lists.append(
-                {
-                    "artist_id": artist['id'],
-                    "artist_name": artist['name']
-                }
-            )
-        track_feat_info = {
-            "track_name": track['name'],
-            "track_id": track['id'],
-            "track_date": album_date,
-            "featuring_artists": artists_objects_lists
-
-        }
-        return track_feat_info
+        for artists_comb in itertools.combinations(artists_list, 2):
+            featuring = {
+                "artist_urn": artists_comb[0]['id'],
+                "artist_name": artists_comb[0]['name'],
+                "track_name": track['name'],
+                "track_id": track['id'],
+                "featuring_artist_urn": artists_comb[1]['id'],
+                "featuring_artist_name": artists_comb[1]['name']
+            }
+            track_featurings.append(featuring)
+        return track_featurings
 
 
 class SpotifyLoader:
@@ -72,35 +66,33 @@ class SpotifyLoader:
         }
         return artist_info
 
-    def get_album_ft_tracks(self, album):
+    def get_album_featurings(self, album):
         tracks = []
         results = self.sp.album_tracks(album['id'])
         tracks.extend(results['items'])
-        album_feat_info = []
+        album_featurings = []
         while results['next']:
             results = self.sp.next(results)
             tracks.extend(results['items'])
 
         for i, track in enumerate(tracks):
-            track_ft_info = get_track_ft_info(track=track, album_date=album['release_date'])
-            if track_ft_info:
-                album_feat_info.append(track_ft_info)
-        if len(album_feat_info) > 0:
-            return album_feat_info
-    
+            track_featurings = get_track_featurings(track)
+            if track_featurings:
+                album_featurings.append(track_featurings[0])
+        if album_featurings:
+            return album_featurings
+
     def get_artist_albums(self, artist_urn):
         albums = []
         albums_list = []
         album_types = ['album', 'single', 'appears_on']
 
         def get_artist_albums_by_type(alb_type):
-            # logger.info('Start call for album type %s ', alb_type)
             results = self.sp.artist_albums(artist_urn, album_type=alb_type)
             albums_list.extend(results['items'])
             while results['next']:
                 results = self.sp.next(results)
                 albums_list.extend(results['items'])
-            # logger.info('End call for album type %s ', alb_type)
 
             def build_album_info(final_list, album):
                 album_info = {
@@ -109,31 +101,38 @@ class SpotifyLoader:
                     'name': album['name'],
                     'label': self.sp.album(album['id'])['label']
                 }
-                final_list.append(album_info)
+                if album_info:
+                    final_list.append(album_info)
                 return album_info
 
+            for album in albums_list:
+                build_album_info(albums, album)
+
             # Multi-threading pool
-            pool = ThreadPool(2)
-            results = pool.starmap(
-                build_album_info,
-                zip(
-                    itertools.repeat(albums),
-                    albums_list
-                )
-            )
-            pool.close()
-            pool.join()
+            # pool = ThreadPool(2)
+            # results = pool.starmap(
+            #     build_album_info,
+            #     zip(
+            #         itertools.repeat(albums),
+            #         albums_list
+            #     )
+            # )
+            # pool.close()
+            # pool.join()
+
+        for album_type in album_types:
+            get_artist_albums_by_type(album_type)
 
         # Multi-threading pool
-        pool = ThreadPool(2)
-        results = pool.starmap(
-            get_artist_albums_by_type,
-            zip(
-                album_types
-            )
-        )
-        pool.close()
-        pool.join()
+        # pool = ThreadPool(2)
+        # results = pool.starmap(
+        #     get_artist_albums_by_type,
+        #     zip(
+        #         album_types
+        #     )
+        # )
+        # pool.close()
+        # pool.join()
 
         return albums
 
