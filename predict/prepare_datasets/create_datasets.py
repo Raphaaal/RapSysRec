@@ -75,13 +75,13 @@ if __name__ == '__main__':
 
     # All pairs in the 2nd or 3rd hop of the considered artist
     # Thus, some pairs may not be sampled and they will not be proposed in the predictions at the end
-    truncate_file('artist_set.csv')
-    truncate_file('artist_set_features.csv')
-    artist_set = get_artist_specific_set(artist_urn='5gs4Sm2WQUkcGeikMcVHbh', driver=driver)
-    artist_set.to_csv('artist_set.csv')
-    for i, chunk in enumerate(pd.read_csv('artist_set.csv', chunksize=1)):
-        artist_set_chunk = get_artist_specific_features(artist_df=chunk, min_nb_tn=0.0, driver=driver)
-        if i == 0:
-            artist_set_chunk.to_csv('artist_set_features.csv', mode='w', header=True)
-        else:
-            artist_set_chunk.to_csv('artist_set_features.csv', mode='a', header=False)
+    # truncate_file('artist_set.csv')
+    # truncate_file('artist_set_features.csv')
+    # artist_set = get_artist_specific_set(artist_urn='5gs4Sm2WQUkcGeikMcVHbh', driver=driver)
+    # artist_set.to_csv('artist_set.csv')
+    # for i, chunk in enumerate(pd.read_csv('artist_set.csv', chunksize=1)):
+    #     artist_set_chunk = get_artist_specific_features(artist_df=chunk, min_nb_tn=0.0, driver=driver)
+    #     if i == 0:
+    #         artist_set_chunk.to_csv('artist_set_features.csv', mode='w', header=True)
+    #     else:
+    #         artist_set_chunk.to_csv('artist_set_features.csv', mode='a', header=False)

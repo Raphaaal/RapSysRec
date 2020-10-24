@@ -48,14 +48,8 @@ def make_predictions(pdf, classifier, features):
 
 
 def get_relevant_predictions(pdf, concerned_artist_id, graph):
-
-    def filter_pdf(row, concerned_artist=concerned_artist_id):
-        if row['node1'] == concerned_artist:
-            return int(row['node2'])
-        else:
-            return int(row['node1'])
-
-    pdf['id'] = pdf.apply(lambda row: filter_pdf(row, concerned_artist_id), axis=1)
+    pairs = pdf[['node1', 'node2']].values.tolist()
+    pdf['id'] = [x[0] if x[1] == concerned_artist_id else x[1] for x in pairs]
     pdf_display = pdf[["id", "pred", "label", "pred_proba_0", "pred_proba_1"]]
     ft_artists_names = graph.get_artists_pdf_from_ids(pdf['id'].tolist())
     pdf_display['name'] = np.asarray(ft_artists_names)
@@ -74,9 +68,9 @@ if __name__ == '__main__':
     driver = graph.driver
 
     # Train / test / artist sets import
-    train_set = pd.read_csv('../train_set_features.csv')
-    test_set = pd.read_csv('../test_set_features.csv')
-    hamza = pd.read_csv('../artist_set_features.csv')
+    train_set = pd.read_csv('../prepare_datasets/train_set_features.csv')
+    test_set = pd.read_csv('../prepare_datasets/test_set_features.csv')
+    hamza = pd.read_csv('../prepare_datasets/artist_set_features.csv')
 
     # Train classifier
     # TODO: try a different classifier / hyper parameters
@@ -93,7 +87,7 @@ if __name__ == '__main__':
     y = train_set["label"]
     classifier.fit(X, y)
     logger.info('Classifier trained')
-    dump(classifier, '../model.joblib')
+    dump(classifier, 'model.joblib')
     logger.info('Classifier saved')
 
     # Model analysis
@@ -112,6 +106,7 @@ if __name__ == '__main__':
         "sp", "sl",
         "nb_common_labels", "nb_common_genres", "squared_popularity_diff"
     ])
-    result_hamza = get_relevant_predictions(hamza, concerned_artist_id=7034, graph=graph)
+    concerned_artist_id = graph.get_node_id_by_urn(urn="5gs4Sm2WQUkcGeikMcVHbh")
+    result_hamza = get_relevant_predictions(hamza, concerned_artist_id=concerned_artist_id, graph=graph)
     logger.info('Artist prediction computed')
     result_hamza.to_csv("artist_predictions.csv")
