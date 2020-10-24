@@ -30,7 +30,7 @@ def set_max_year(driver):
         session.run(query)
 
 
-def get_year_ditribution(driver):
+def get_year_distribution(driver):
     query = """
     MATCH p=()-[r:FEAT_NB]->()
     WITH r.year AS year, count(*) AS count

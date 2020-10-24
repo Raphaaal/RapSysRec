@@ -4,7 +4,7 @@ from predict.prepare_graph.early_late_split import split_early_late
 import logging
 
 logger = logging.getLogger('feature_engineering')
-# logger.propagate = False
+logger.propagate = False
 logging.basicConfig(level='INFO')
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
@@ -180,7 +180,7 @@ def extract_same_genre_feature(data, driver_instance):
     return pd.merge(data, same_label, on=["node1", "node2"])
 
 
-def extract_popularity_diff_feature(data, driver_instance):
+def extract_popularity_diff_feature(data, driver_instance, default_pop=50):
     query = """
         UNWIND $pairs AS pair
         MATCH (p1) WHERE id(p1) = pair.node1 
@@ -188,11 +188,15 @@ def extract_popularity_diff_feature(data, driver_instance):
         RETURN DISTINCT
         pair.node1 AS node1, 
         pair.node2 AS node2,
-        abs(p1.popularity - p2.popularity) AS squared_popularity_diff
+        CASE 
+            WHEN p1.popularity IS NOT NULL AND p2.popularity IS NOT NULL THEN abs(p1.popularity - p2.popularity)
+            ELSE $default_pop 
+            END AS squared_popularity_diff
         """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
     params = {
         "pairs": pairs,
+        "default_pop": default_pop
     }
 
     with driver_instance.session() as session:
