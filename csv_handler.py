@@ -1,4 +1,5 @@
 import csv
+import io
 
 
 def truncate_file(file_path):
@@ -56,3 +57,10 @@ def write_scraped_album(scraped_albums_csv, album_urn):
     with open(scraped_albums_csv, 'a', newline='') as f:
         csv_writer = csv.writer(f)
         csv_writer.writerow([album_urn])
+
+
+def write_list_to_csv(pairs, csv_path, mode='a'):
+    with io.open(csv_path, mode, newline='', encoding='utf-8') as f:
+        csv_writer = csv.writer(f)
+        for pair in pairs:
+            csv_writer.writerow(pair)

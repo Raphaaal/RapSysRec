@@ -82,6 +82,10 @@ class Neo4JHandler:
         with self.driver.session() as session:
             session.write_transaction(self._delete_nodes_without_label)
 
+    def convert_pop_to_int(self):
+        with self.driver.session() as session:
+            session.write_transaction(self._convert_pop_to_int)
+
     def set_constraints(self):
         with self.driver.session() as session:
             session.write_transaction(self._set_constraints)
@@ -320,6 +324,14 @@ class Neo4JHandler:
         result = tx.run(
             "MATCH (n) WHERE size(labels(n)) = 0 "
             "DETACH DELETE n "
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    def _convert_pop_to_int(tx):
+        result = tx.run(
+            "MATCH (n: Artist) WHERE n.popularity IS NOT NULL "
+            "SET n.popularity = toInteger(n.popularity) "
         )
         return [row[0] for row in result]
 

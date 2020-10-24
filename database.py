@@ -1,7 +1,7 @@
 import io
 from itertools import combinations
 import neo4j
-from history import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album, \
+from csv_handler import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album, \
     get_scraped_artists, truncate_file
 from neo4j_handler import Neo4JHandler
 from scraping_history.scraping_history_handler import post_treatment_scraping_history
@@ -296,6 +296,9 @@ class Database:
     def delete_nodes_without_label(self):
         self.graph.delete_nodes_without_label()
 
+    def post_treatment_db(self):
+        self.graph.convert_pop_to_int()
+
 
 if __name__ == "__main__":
     db = Database(
@@ -329,20 +332,22 @@ if __name__ == "__main__":
     #     last_urn_scraped="2x6fya70OYIW6J2TZz25lQ"
     # )
 
-    post_treatment_scraping_history()
+    # post_treatment_scraping_history()
+    #
+    # logger.info('Starting artists writing to DB')
+    # genres = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
+    # logger.info('Ended artists writing to DB')
+    #
+    # logger.info('Starting genres writing to DB')
+    # genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
+    # logger.info('Ended genres writing to DB')
+    #
+    # logger.info('Starting labels writing to DB')
+    # labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
+    # logger.info('Ended labels writing to DB')
 
-    logger.info('Starting artists writing to DB')
-    genres = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
-    logger.info('Ended artists writing to DB')
+    # db.post_treatment_db()
 
-    logger.info('Starting genres writing to DB')
-    genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
-    logger.info('Ended genres writing to DB')
-
-    logger.info('Starting labels writing to DB')
-    labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
-    logger.info('Ended labels writing to DB')
-
-    logger.info('Starting feats writing to DB')
-    feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
-    logger.info('Ended feats writing to DB')
+    # logger.info('Starting feats writing to DB')
+    # feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
+    # logger.info('Ended feats writing to DB')
