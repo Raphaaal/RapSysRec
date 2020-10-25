@@ -2,6 +2,7 @@ from neo4j import GraphDatabase
 import pandas as pd
 import os
 
+
 class Neo4JHandler:
 
     def __init__(self, uri, user, password):
@@ -50,6 +51,11 @@ class Neo4JHandler:
             artist_genre = session.read_transaction(self._get_genre_artist, genre_name, artist_urn)
             return artist_genre
 
+    def get_node_id_by_urn(self, urn):
+        with self.driver.session() as session:
+            artist_id = session.read_transaction(self._get_node_id_by_urn, urn)
+            return artist_id
+
     def get_label_artist(self, label_name, artist_urn, album_date):
         with self.driver.session() as session:
             artist_label = session.read_transaction(self._get_label_artist, label_name, artist_urn, album_date)
@@ -94,7 +100,10 @@ class Neo4JHandler:
         query = """
         MATCH (a: Artist)
         WHERE ID(a) IN $artists_id_list
-        RETURN a.name
+        RETURN CASE 
+            WHEN a.name IS NULL THEN 'null'
+            WHEN a.name IS NOT NULL THEN a.name
+            END
         """
         params = {"artists_id_list": artists_id_list}
         with self.driver.session() as session:
@@ -250,6 +259,16 @@ class Neo4JHandler:
             "RETURN g.name, a.name",
             artist_urn=artist_urn,
             genre_name=genre_name
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    def _get_node_id_by_urn(tx, urn):
+        result = tx.run(
+            "MATCH (a:Artist)  "
+            "WHERE a.urn = $urn "
+            "RETURN DISTINCT id(a) ",
+            urn=urn
         )
         return [row[0] for row in result]
 

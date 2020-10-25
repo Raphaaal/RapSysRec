@@ -7,6 +7,7 @@ import logging
 # import numpy as np
 # import itertools
 # from random import shuffle
+from random import shuffle
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -18,15 +19,12 @@ logger = logging.getLogger('feature_engineering')
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 
-def get_test_set(max_links, driver):
+def get_test_set(max_links, batch_size, driver):
     with driver.session() as session:
 
         # Reset datasets
         truncate_file('testing_existing_links.csv')
-        truncate_file('random_pairs_late.csv')
-        write_list_to_csv([['node1', 'node2']], 'random_pairs_late.csv')
-        truncate_file('random_pairs_late_tested.csv')
-        write_list_to_csv([['node1', 'node2']], 'random_pairs_late_tested.csv')
+        truncate_file('testing_all_ids.csv')
         truncate_file('testing_missing_links.csv')
         write_list_to_csv([['node1', 'node2', 'label']], 'testing_missing_links.csv')
 
@@ -42,55 +40,36 @@ def get_test_set(max_links, driver):
         train_existing_links.to_csv('testing_existing_links.csv', index=False)
         logger.info("Testing existing links computed.")
 
-        # Get missing links within 2 or 3 hops
+        # Get missing links within 2..4 hops
 
-        # Get random pairs of Artist nodes id
-        while len(pd.read_csv('testing_missing_links.csv').drop_duplicates().index) < max_links:
-            print(len(pd.read_csv('testing_missing_links.csv').drop_duplicates().index))
+        result = session.run(
+            """
+            MATCH (a:Artist)-[:FEAT_LATE*2..4]-()
+            RETURN DISTINCT id(a) AS node
+            """
+        )
+        all_ids = pd.DataFrame([dict(record)['node'] for record in result]).drop_duplicates()
+        all_ids.to_csv('testing_all_ids.csv', index=False)
+        artists_ids = [x[0] for x in pd.read_csv('testing_all_ids.csv').values.tolist()]
+
+        # Get pairs of Artist nodes id by checking that link is indeed missing
+        for artist_id in artists_ids:
             result = session.run(
-                """
-                MATCH (a:Artist)-[:FEAT_LATE]-()
-                RETURN DISTINCT id(a) AS node
-                """
+                """  
+                MATCH (a:Artist) WHERE id(a) = $artist_urn
+                MATCH (a)-[:FEAT_LATE*2..4]-(b)
+                WHERE NOT ((a)-[:FEAT_LATE]-(b)) AND a <> b
+                RETURN DISTINCT id(a) AS node1, id(b) AS node2, 0 AS label
+                LIMIT $batch_size
+                """,
+                {
+                    "artist_urn": artist_id,
+                    "batch_size": batch_size
+                }
             )
-            artists_ids = [dict(record)['node'] for record in result]
-            tested_pairs_df = pd.read_csv('random_pairs_late_tested.csv')
-            tested_pairs = set()
-            if not tested_pairs_df.empty:
-                tested_pairs = set([tuple(x) for x in tested_pairs_df.to_numpy()])
-            tmp_tested_len = len(tested_pairs)
-            tmp_pairs = set()
-            counter = max_links * 10
-            while (len(tmp_pairs) < counter) and (len(tested_pairs) < (tmp_tested_len + counter)):
-                node1 = random.choice(artists_ids)
-                node2 = random.choice(artists_ids)
-                tmp_pairs.add((node1, node2))
-                tested_pairs.add((node1, node2))
-            truncate_file('random_pairs_late.csv')
-            write_list_to_csv([['node1', 'node2']], 'random_pairs_late.csv')
-            write_list_to_csv(tmp_pairs, mode='a', csv_path='random_pairs_late.csv')
-            write_list_to_csv(tested_pairs, mode='a', csv_path='random_pairs_late_tested.csv')
-            logger.info("Random testing pairs set computed.")
 
-            # Check that link is indeed missing
-            for chunk in pd.read_csv('random_pairs_late.csv', chunksize=max_links):
-                pairs = [{"node1": node1, "node2": node2} for node1, node2 in chunk[["node1", "node2"]].values.tolist()]
-                result = session.run(
-                    """  
-                    UNWIND $pairs as pair 
-                    MATCH (p1) WHERE id(p1) = pair.node1
-                    MATCH (p2) WHERE id(p2) = pair.node2
-                    AND (p1)-[:FEAT_LATE*2..3]-(p2) 
-                    AND NOT((p1)-[:FEAT_LATE]-(p2)) 
-                    AND p1 <> p2
-                    RETURN DISTINCT id(p1) AS node1, id(p2) AS node2, 0 AS label
-                    LIMIT $max_missing_links
-                    """,
-                    {"pairs": pairs, "max_missing_links": max_links}
-                )
-
-                train_missing_links = pd.DataFrame([dict(record) for record in result]).drop_duplicates()
-                train_missing_links.to_csv('testing_missing_links.csv', mode='a', header=False, index=False)
+            train_missing_links = pd.DataFrame([dict(record) for record in result]).drop_duplicates()
+            train_missing_links.to_csv('testing_missing_links.csv', mode='a', header=False, index=False)
 
         logger.info("Testing missing links computed.")
 

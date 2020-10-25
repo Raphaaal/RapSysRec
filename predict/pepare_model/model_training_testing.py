@@ -48,19 +48,51 @@ def make_predictions(pdf, classifier, features):
 
 
 def get_relevant_predictions(pdf, concerned_artist_id, graph):
-
-    def filter_pdf(row, concerned_artist=concerned_artist_id):
-        if row['node1'] == concerned_artist:
-            return int(row['node2'])
-        else:
-            return int(row['node1'])
-
-    pdf['id'] = pdf.apply(lambda row: filter_pdf(row, concerned_artist_id), axis=1)
+    pairs = pdf[['node1', 'node2']].values.tolist()
+    pdf['id'] = [x[0] if x[1] == concerned_artist_id else x[1] for x in pairs]
     pdf_display = pdf[["id", "pred", "label", "pred_proba_0", "pred_proba_1"]]
     ft_artists_names = graph.get_artists_pdf_from_ids(pdf['id'].tolist())
     pdf_display['name'] = np.asarray(ft_artists_names)
     result = pdf_display[pdf_display['label'] == 0].sort_values(["pred_proba_1"], ascending=[False])
     return result
+
+
+def import_datasets():
+    train_set = pd.read_csv('../prepare_datasets/train_set_features.csv')
+    test_set = pd.read_csv('../prepare_datasets/test_set_features.csv')
+    hamza = pd.read_csv('../prepare_datasets/artist_set_features.csv')
+    full_set = pd.read_csv('../prepare_datasets/full_set_features.csv')
+    return train_set, test_set, hamza, full_set
+
+
+def train_classifier(train_set, columns):
+    train_set.drop(columns=["node1", "node2"])
+    classifier = RandomForestClassifier(n_estimators=300, max_depth=10, random_state=0)
+    X = train_set[columns]
+    y = train_set["label"]
+    classifier.fit(X, y)
+    logger.info('Classifier trained')
+    dump(classifier, 'model.joblib')
+    logger.info('Classifier saved')
+    return classifier
+
+
+def test_classifier(classifier, test_set, columns):
+    test_set.drop(columns=["node1", "node2"])
+    preds = classifier.predict(test_set[columns])
+    y_test = test_set["label"]
+    results = evaluate_model(preds, y_test)
+    print(results)
+    feature_expl = feature_importance(columns, classifier)
+    print(feature_expl)
+
+
+def get_artist_predictions(artist_df, classifier, columns, urn):
+    artist_df = make_predictions(artist_df, classifier, columns)
+    concerned_artist_id = graph.get_node_id_by_urn(urn=urn)
+    result_artist = get_relevant_predictions(artist_df, concerned_artist_id=concerned_artist_id, graph=graph)
+    logger.info('Artist prediction computed')
+    return result_artist
 
 
 if __name__ == '__main__':
@@ -73,45 +105,25 @@ if __name__ == '__main__':
     )
     driver = graph.driver
 
-    # Train / test / artist sets import
-    train_set = pd.read_csv('../train_set_features.csv')
-    test_set = pd.read_csv('../test_set_features.csv')
-    hamza = pd.read_csv('../artist_set_features.csv')
-
-    # Train classifier
-    # TODO: try a different classifier / hyper parameters
-    train_set.drop(columns=["node1", "node2"])
-    test_set.drop(columns=["node1", "node2"])
-    classifier = RandomForestClassifier(n_estimators=30, max_depth=10, random_state=0)
+    # Train / test / artist / full sets import
+    train_set, test_set, hamza, full_set = import_datasets()
     columns = [
         "cn", "pa", "tn",  # graph features
         "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",  # triangle features
         "sp", "sl",  # community features
         "nb_common_labels", "nb_common_genres", "squared_popularity_diff"
     ]
-    X = train_set[columns]
-    y = train_set["label"]
-    classifier.fit(X, y)
-    logger.info('Classifier trained')
-    dump(classifier, '../model.joblib')
-    logger.info('Classifier saved')
+
+    # Train classifier
+    # TODO: try a different classifier / hyper parameters / columns
+    classifier = train_classifier(train_set, columns=columns)
 
     # Model analysis
-    # TODO: at the end, re-train the validated model on all data (train + test)
-    preds = classifier.predict(test_set[columns])
-    y_test = test_set["label"]
-    results = evaluate_model(preds, y_test)
-    print(results)
-    feature_expl = feature_importance(columns, classifier)
-    print(feature_expl)
+    test_classifier(classifier, test_set, columns)
+
+    # Model re-training with full set
+    classifier = train_classifier(full_set, columns=columns)
 
     # Artist specific predictions
-    hamza = make_predictions(hamza, classifier, [
-        "cn", "pa", "tn",
-        "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",
-        "sp", "sl",
-        "nb_common_labels", "nb_common_genres", "squared_popularity_diff"
-    ])
-    result_hamza = get_relevant_predictions(hamza, concerned_artist_id=7034, graph=graph)
-    logger.info('Artist prediction computed')
+    result_hamza = get_artist_predictions(hamza, classifier, columns, "5gs4Sm2WQUkcGeikMcVHbh")
     result_hamza.to_csv("artist_predictions.csv")
