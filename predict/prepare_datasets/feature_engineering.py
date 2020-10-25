@@ -3,9 +3,12 @@ import pandas as pd
 from predict.prepare_graph.early_late_split import split_early_late
 import logging
 
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('feature_engineering')
 logger.propagate = False
-logging.basicConfig(level='INFO')
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 

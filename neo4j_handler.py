@@ -2,6 +2,7 @@ from neo4j import GraphDatabase
 import pandas as pd
 import os
 
+
 class Neo4JHandler:
 
     def __init__(self, uri, user, password):
