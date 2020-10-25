@@ -67,10 +67,11 @@ if __name__ == '__main__':
     )
     driver = graph.driver
 
-    # Train / test / artist sets import
+    # Train / test / artist / full sets import
     train_set = pd.read_csv('../prepare_datasets/train_set_features.csv')
     test_set = pd.read_csv('../prepare_datasets/test_set_features.csv')
     hamza = pd.read_csv('../prepare_datasets/artist_set_features.csv')
+    full_set = pd.read_csv('../prepare_datasets/full_set_features.csv')
 
     # Train classifier
     # TODO: try a different classifier / hyper parameters
