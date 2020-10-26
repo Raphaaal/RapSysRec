@@ -427,6 +427,32 @@ class Neo4JHandler:
 
             MERGE (a)-[r:FEAT {track_id: row.track_id}]->(b)
             ON CREATE SET r.track_name = row.track_name, r.track_date = row.track_date
+            
+            FOREACH (ift in CASE WHEN date(row.track_date) >= date("2015-01-01") AND date(row.track_date) <= date("2015-12-01") THEN [1] ELSE [] END |
+                    MERGE (a)-[r:FEAT_2015 {track_id: row.track_id}]->(b)
+                    ON CREATE SET r.track_name = row.track_name, r.track_date = row.track_date
+            )
+            
+            FOREACH (ift in CASE WHEN date(row.track_date) >= date("2016-01-01") AND date(row.track_date) <= date("2016-12-01") THEN [1] ELSE [] END |
+                    MERGE (a)-[r:FEAT_2016 {track_id: row.track_id}]->(b)
+                    ON CREATE SET r.track_name = row.track_name, r.track_date = row.track_date
+            )
+            
+            FOREACH (ift in CASE WHEN date(row.track_date) >= date("2017-01-01") AND date(row.track_date) <= date("2017-12-01") THEN [1] ELSE [] END |
+                    MERGE (a)-[r:FEAT_2017 {track_id: row.track_id}]->(b)
+                    ON CREATE SET r.track_name = row.track_name, r.track_date = row.track_date
+            )
+            
+            FOREACH (ift in CASE WHEN date(row.track_date) >= date("2018-01-01") AND date(row.track_date) <= date("2018-12-01") THEN [1] ELSE [] END |
+                    MERGE (a)-[r:FEAT_2018 {track_id: row.track_id}]->(b)
+                    ON CREATE SET r.track_name = row.track_name, r.track_date = row.track_date
+            )
+            
+            FOREACH (ift in CASE WHEN date(row.track_date) >= date("2019-01-01") AND date(row.track_date) <= date("2019-12-01") THEN [1] ELSE [] END |
+                    MERGE (a)-[r:FEAT_2019 {track_id: row.track_id}]->(b)
+                    ON CREATE SET r.track_name = row.track_name, r.track_date = row.track_date
+            )
+
             """,
             csv_path=csv_path
         )
@@ -448,11 +474,10 @@ class Neo4JHandler:
 
             MERGE (l: Label {name: row.label})
 
-            MERGE (a)-[r:LABEL {date: $date}]->(l)
+            MERGE (a)-[r:LABEL {date: row.date}]->(l)
             """,
             {
-                'csv_path': csv_path,
-                'date': date
+                'csv_path': csv_path
             }
         )
         return [row[0] for row in result]
