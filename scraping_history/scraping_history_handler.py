@@ -33,14 +33,16 @@ def post_treatment_scraping_history(
     drop_duplicates(output_feats)
     drop_duplicates(output_genres)
     drop_duplicates(output_labels)
+    for i in range(5):
+        drop_duplicates(output_linked_artists + '_' + str(i) + '.csv')
 
     # Counts
-    paths_optimist = [output_linked_artists + '_' + str(i) + '.csv' for i in range(4)]
-    paths_pessimist = [output_linked_artists + '_' + str(i) + '.csv' for i in range(3)]
-    count_optimist = count_scraped_artists(paths_optimist, urn_col='urn')
-    count_pessimist = count_scraped_artists(paths_pessimist, urn_col='urn')
-    print("Linked artists: between " + str(count_pessimist) + " and " + str(count_optimist) + " artists.")
-    print("Genres: " + str(count_scraped_artists([output_genres], urn_col='artist_urn')) + " artists.")
-    print("Labels: " + str(count_scraped_artists([output_labels], urn_col='artist_urn')) + " artists.")
+    # paths_optimist = [output_linked_artists + '_' + str(i) + '.csv' for i in range(4)]
+    # paths_pessimist = [output_linked_artists + '_' + str(i) + '.csv' for i in range(3)]
+    # count_optimist = count_scraped_artists(paths_optimist, urn_col='urn')
+    # count_pessimist = count_scraped_artists(paths_pessimist, urn_col='urn')
+    # print("Linked artists: between " + str(count_pessimist) + " and " + str(count_optimist) + " artists.")
+    # print("Genres: " + str(count_scraped_artists([output_genres], urn_col='artist_urn')) + " artists.")
+    # print("Labels: " + str(count_scraped_artists([output_labels], urn_col='artist_urn')) + " artists.")
 
 
