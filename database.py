@@ -13,6 +13,9 @@ from pprint import pprint
 import csv
 import json
 import pandas as pd
+from tqdm import tqdm
+import istarmap
+from datetime import datetime
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -64,7 +67,7 @@ def write_linked_artists_to_csv(featurings, artist_urn, output_linked_artists):
 
 
 def initialize_linked_artists_csv(nb_hops, output_linked_artists, first_artist_urn):
-    for i in range(nb_hops+1):
+    for i in range(nb_hops + 1):
         truncate_file(output_linked_artists + "_" + str(i) + ".csv")
         with io.open(output_linked_artists + "_" + str(i) + ".csv", 'a', newline='', encoding='utf-8') as f:
             csv_writer = csv.writer(f)
@@ -112,6 +115,17 @@ def write_artist_to_csv(artists, csv_path):
             )
 
 
+def get_album_release_dt(album):
+    album_release_dt = None
+    if len(album['release_date']) == 4:
+        album_release_dt = datetime.strptime(album['release_date'], '%Y')
+    if len(album['release_date']) == 7:
+        album_release_dt = datetime.strptime(album['release_date'], '%Y-%m')
+    if len(album['release_date']) == 10:
+        album_release_dt = datetime.strptime(album['release_date'], '%Y-%m-%d')
+    return album_release_dt
+
+
 class Database:
 
     def __init__(self,
@@ -148,11 +162,14 @@ class Database:
             }
             write_label_to_csv(label, output_label)
 
-    def create_from_artist(self, output_artist, output_label, output_feat, output_genre, output_linked_artists, artist_urn):
+    def create_from_artist(self, output_artist, output_label, output_feat, output_genre, output_linked_artists,
+                           artist_urn, min_album_date):
         # Albums featuring info
         albums = self.spotify.get_artist_albums(artist_urn)
         for album in albums:
-            self.create_from_album(output_label, output_feat, output_linked_artists, album, artist_urn)
+            album_release_dt = get_album_release_dt(album)
+            if album_release_dt > datetime.strptime(min_album_date, '%Y-%m-%d'):
+                self.create_from_album(output_label, output_feat, output_linked_artists, album, artist_urn)
 
         # Genres
         artist = self.spotify.get_artist_info(self.spotify.get_artist_by_id(artist_urn))
@@ -193,14 +210,14 @@ class Database:
         truncate_file("scraping_history/feats.csv")
         album = [
             {
-                    "artist_urn": "artist_urn",
-                    "artist_name": "artist_name",
-                    "track_name": "track_name",
-                    "track_id": "track_id",
-                    "track_date": "track_date",
-                    "featuring_artist_urn": "featuring_artist_urn",
-                    "featuring_artist_name": "featuring_artist_name"
-                }
+                "artist_urn": "artist_urn",
+                "artist_name": "artist_name",
+                "track_name": "track_name",
+                "track_id": "track_id",
+                "track_date": "track_date",
+                "featuring_artist_urn": "featuring_artist_urn",
+                "featuring_artist_name": "featuring_artist_name"
+            }
         ]
         write_album_to_csv(album, "scraping_history/feats.csv")
 
@@ -234,7 +251,7 @@ class Database:
 
     def expand_from_artist(
             self, output_artist, output_feat, output_label, output_genre, output_linked_artists, artist_urn, nb_hops,
-            redo_from_hop=None, last_urn_scraped=None
+            redo_from_hop=None, last_urn_scraped=None, min_album_date=None
     ):
 
         if not redo_from_hop:
@@ -243,12 +260,15 @@ class Database:
             logger.info("==========================================================================")
             logger.info("=                                  HOP #0                                =")
             logger.info("==========================================================================")
-            self.create_from_artist(output_artist, output_label, output_feat, output_genre, output_linked_artists + "_1", artist_urn)
+            self.create_from_artist(output_artist, output_label, output_feat, output_genre,
+                                    output_linked_artists + "_1", artist_urn, min_album_date)
 
             # Hop on and scrape on
             for i in range(1, nb_hops):
                 logger.info("==========================================================================")
                 logger.info("=                                  HOP #%s                                =", str(i))
+                logger.info("=                Scraping artists until linked_artists_%s                 =", str(i))
+                logger.info("=              Writing next artists in linked_artists_%s                  =", str(i + 1))
                 logger.info("==========================================================================")
                 # Isolate artists already scraped
                 scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
@@ -256,23 +276,58 @@ class Database:
                     scraped_artists = scraped_artists.append(
                         pd.read_csv(output_linked_artists + "_" + str(k) + ".csv").drop_duplicates()
                     )
+                    print(k)
                 # Get artists to scrap
                 linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
-                linked_artists = pd.concat([linked_artists, scraped_artists]).drop_duplicates(keep=False).values.tolist()
-                for urn in linked_artists:
+                # Exclude linked artists that have already been scraped
+                linked_artists = [
+                    elt[0] for elt in pd.concat(
+                        [
+                            linked_artists,
+                            scraped_artists
+                        ]
+                    ).drop_duplicates(keep=False).values.tolist()
+                ]
+
+                # # Multi processing
+                # with ThreadPool(16) as p:
+                #     for _ in tqdm(
+                #             p.istarmap(
+                #                 self.create_from_artist,
+                #                 zip(
+                #                     itertools.repeat(output_artist),
+                #                     itertools.repeat(output_label),
+                #                     itertools.repeat(output_feat),
+                #                     itertools.repeat(output_genre),
+                #                     itertools.repeat(output_linked_artists + "_" + str(i + 1)),
+                #                     linked_artists
+                #                 )
+                #             ),
+                #             total=len(linked_artists)
+                #     ):
+                #         pass
+                #     p.close()
+                #     p.join()
+
+                for urn in tqdm(linked_artists):
                     self.create_from_artist(
                         output_artist,
                         output_label,
                         output_feat,
                         output_genre,
                         output_linked_artists + "_" + str(i+1),
-                        urn[0]
+                        urn,
+                        min_album_date
                     )
+                post_treatment_scraping_history()  # Remove duplicates
+
         if redo_from_hop:
             # Hop on and scrape on
             for i in range(redo_from_hop, nb_hops):
                 logger.info("==========================================================================")
                 logger.info("=                                  HOP #%s                                =", str(i))
+                logger.info("=                Scraping artists until linked_artists_%s                 =", str(i))
+                logger.info("=              Writing next artists in linked_artists_%s                 =", str(i + 1))
                 logger.info("==========================================================================")
                 # Isolate artists already scraped
                 scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
@@ -285,16 +340,18 @@ class Database:
                 linked_artists = pd.concat([linked_artists, scraped_artists]).drop_duplicates(keep=False)
                 if last_urn_scraped:
                     linked_artists = linked_artists[(linked_artists.urn == last_urn_scraped).idxmax():]
-                linked_artists = linked_artists.values.tolist()
-                for urn in linked_artists:
+                linked_artists = [elt[0] for elt in linked_artists.values.tolist()]
+                for urn in tqdm(linked_artists):
                     self.create_from_artist(
                         output_artist,
                         output_label,
                         output_feat,
                         output_genre,
-                        output_linked_artists + "_" + str(i+1),
-                        urn[0]
+                        output_linked_artists + "_" + str(i + 1),
+                        urn,
+                        min_album_date
                     )
+                post_treatment_scraping_history()  # Remove duplicates
 
     def delete_duplicate_artist(self):
         self.graph.delete_duplicate_artists()
@@ -316,16 +373,7 @@ if __name__ == "__main__":
 
     db.reset()
 
-    # db.expand_from_artist(
-    #     output_artist="scraping_history/artists_.csv",
-    #     output_feat="scraping_history/feats.csv",
-    #     output_label="scraping_history/labels.csv",
-    #     output_genre="scraping_history/genres.csv",
-    #     output_linked_artists="scraping_history/linked_artists",
-    #     nb_hops=4,
-    #     artist_urn="1afjj7vSBkpIjkiJdSV6bV"
-    # )
-
+    # For start
     db.expand_from_artist(
         output_artist="scraping_history/artists.csv",
         output_feat="scraping_history/feats.csv",
@@ -334,27 +382,40 @@ if __name__ == "__main__":
         output_linked_artists="scraping_history/linked_artists",
         nb_hops=4,
         artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-        redo_from_hop=2,
-        last_urn_scraped="6f4XkbvYlXMH0QgVRzW0sM"
+        min_album_date='2015-01-01'
     )
 
-    post_treatment_scraping_history()
+    # For retry
+    # db.expand_from_artist(
+    #     output_artist="scraping_history/artists.csv",
+    #     output_feat="scraping_history/feats.csv",
+    #     output_label="scraping_history/labels.csv",
+    #     output_genre="scraping_history/genres.csv",
+    #     output_linked_artists="scraping_history/linked_artists",
+    #     nb_hops=4,
+    #     artist_urn="1afjj7vSBkpIjkiJdSV6bV",
+    #     redo_from_hop=2,
+    #     last_urn_scraped="0e0fOJrxIhI8gb7vizwwF7",
+    #     min_album_date='2015-01-01'
+    # )
 
-    logger.info('Starting artists writing to DB')
-    genres = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/artists.csv')
-    genres = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/artists_.csv')
-    logger.info('Ended artists writing to DB')
+    # post_treatment_scraping_history()
 
-    logger.info('Starting genres writing to DB')
-    genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
-    logger.info('Ended genres writing to DB')
+    # logger.info('Starting artists writing to DB')
+    # artists = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/artists.csv')
+    # logger.info('Ended artists writing to DB')
+    #
+    # logger.info('Starting genres writing to DB')
+    # genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
+    # logger.info('Ended genres writing to DB')
+    #
+    # logger.info('Starting labels writing to DB')
+    # labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
+    # logger.info('Ended labels writing to DB')
 
-    logger.info('Starting labels writing to DB')
-    labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
-    logger.info('Ended labels writing to DB')
+    # db.post_treatment_db()
+    # logger.info("Removed duplicates from scraping history files")
 
-    db.post_treatment_db()
-
-    logger.info('Starting feats writing to DB')
-    feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
-    logger.info('Ended feats writing to DB')
+    # logger.info('Starting feats writing to DB')
+    # feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
+    # logger.info('Ended feats writing to DB')
