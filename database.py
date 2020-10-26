@@ -306,8 +306,8 @@ class Database:
                         scraped_artists,
                         scraped_artists
                     ], ignore_index=True
-                )['urn'].drop_duplicates(keep=False)
-
+                )['urn'].drop_duplicates(keep=False).reset_index()
+                linked_artists = linked_artists['urn'].values.tolist()
                 # # Multi processing
                 # with ThreadPool(16) as p:
                 #     for _ in tqdm(
@@ -410,18 +410,6 @@ if __name__ == "__main__":
     # db.reset()
 
     # For start
-    db.expand_from_artist(
-        output_artist="scraping_history/artists.csv",
-        output_feat="scraping_history/feats.csv",
-        output_label="scraping_history/labels.csv",
-        output_genre="scraping_history/genres.csv",
-        output_linked_artists="scraping_history/linked_artists",
-        nb_hops=4,
-        artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-        min_album_date='2015-01-01'
-    )
-
-    # For retry
     # db.expand_from_artist(
     #     output_artist="scraping_history/artists.csv",
     #     output_feat="scraping_history/feats.csv",
@@ -430,10 +418,22 @@ if __name__ == "__main__":
     #     output_linked_artists="scraping_history/linked_artists",
     #     nb_hops=4,
     #     artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-    #     redo_from_hop=2,
-    #     last_urn_scraped="5K44yuP8WLPHoyvXNXOtED",
     #     min_album_date='2015-01-01'
     # )
+
+    # For retry
+    db.expand_from_artist(
+        output_artist="scraping_history/artists.csv",
+        output_feat="scraping_history/feats.csv",
+        output_label="scraping_history/labels.csv",
+        output_genre="scraping_history/genres.csv",
+        output_linked_artists="scraping_history/linked_artists",
+        nb_hops=4,
+        artist_urn="1afjj7vSBkpIjkiJdSV6bV",
+        redo_from_hop=2,
+        last_urn_scraped="42ldsF5URtgNRm2gBOZn2K",
+        min_album_date='2015-01-01'
+    )
 
     # post_treatment_scraping_history()
 
