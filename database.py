@@ -1,6 +1,8 @@
 import io
 from itertools import combinations
 import neo4j
+import requests
+
 from csv_handler import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album, \
     get_scraped_artists, truncate_file
 from neo4j_handler import Neo4JHandler
@@ -129,21 +131,21 @@ def get_album_release_dt(album):
 class Database:
 
     def __init__(self,
-                 neo4j_user, neo4j_password,
+                 # neo4j_user, neo4j_password,
                  spotify_client_id, spotify_client_secret):
-        self.neo4j_user = neo4j_user
-        self.neo4j_password = neo4j_password
+        # self.neo4j_user = neo4j_user
+        # self.neo4j_password = neo4j_password
         self.spotify_client_id = spotify_client_id
         self.spotify_client_secret = spotify_client_secret
         self.spotify = SpotifyLoader(
             client_id="28d60111ea634effb71f87304bed9285",
             client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
         )
-        self.graph = Neo4JHandler(
-            uri="bolt://localhost:7687",
-            user="neo4j",
-            password="root"
-        )
+        # self.graph = Neo4JHandler(
+        #     uri="bolt://localhost:7687",
+        #     user=neo4j_user,
+        #     password=neo4j_password
+        # )
 
     def create_from_album(self, output_label, output_feat, output_linked_artists, album, artist_urn):
         # Featurings
@@ -322,12 +324,13 @@ class Database:
                 post_treatment_scraping_history()  # Remove duplicates
 
         if redo_from_hop:
+            post_treatment_scraping_history()
             # Hop on and scrape on
             for i in range(redo_from_hop, nb_hops):
                 logger.info("==========================================================================")
                 logger.info("=                                  HOP #%s                                =", str(i))
                 logger.info("=                Scraping artists until linked_artists_%s                 =", str(i))
-                logger.info("=              Writing next artists in linked_artists_%s                 =", str(i + 1))
+                logger.info("=              Writing next artists in linked_artists_%s                  =", str(i + 1))
                 logger.info("==========================================================================")
                 # Isolate artists already scraped
                 scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
@@ -342,15 +345,33 @@ class Database:
                     linked_artists = linked_artists[(linked_artists.urn == last_urn_scraped).idxmax():]
                 linked_artists = [elt[0] for elt in linked_artists.values.tolist()]
                 for urn in tqdm(linked_artists):
-                    self.create_from_artist(
-                        output_artist,
-                        output_label,
-                        output_feat,
-                        output_genre,
-                        output_linked_artists + "_" + str(i + 1),
-                        urn,
-                        min_album_date
-                    )
+                    try:
+                        self.create_from_artist(
+                            output_artist,
+                            output_label,
+                            output_feat,
+                            output_genre,
+                            output_linked_artists + "_" + str(i + 1),
+                            urn,
+                            min_album_date
+                        )
+                    except requests.exceptions.ReadTimeout:
+                        post_treatment_scraping_history()
+                        last_artist_urn = pd.read_csv(output_artist).tail(1)['artist_urn'].iloc[0]
+                        logger.info("Retry from artist %s", last_artist_urn)
+                        self.expand_from_artist(
+                            output_artist=output_artist,
+                            output_feat=output_feat,
+                            output_label=output_label,
+                            output_genre=output_genre,
+                            output_linked_artists=output_linked_artists,
+                            nb_hops=nb_hops,
+                            artist_urn=last_artist_urn,
+                            redo_from_hop=redo_from_hop,
+                            last_urn_scraped=last_urn_scraped,
+                            min_album_date=min_album_date
+                        )
+
                 post_treatment_scraping_history()  # Remove duplicates
 
     def delete_duplicate_artist(self):
@@ -365,27 +386,15 @@ class Database:
 
 if __name__ == "__main__":
     db = Database(
-        neo4j_user="neo4j",
-        neo4j_password="root",
+        # neo4j_user="neo4j",
+        # neo4j_password="root",
         spotify_client_id="28d60111ea634effb71f87304bed9285",
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
 
-    db.reset()
+    # db.reset()
 
     # For start
-    db.expand_from_artist(
-        output_artist="scraping_history/artists.csv",
-        output_feat="scraping_history/feats.csv",
-        output_label="scraping_history/labels.csv",
-        output_genre="scraping_history/genres.csv",
-        output_linked_artists="scraping_history/linked_artists",
-        nb_hops=4,
-        artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-        min_album_date='2015-01-01'
-    )
-
-    # For retry
     # db.expand_from_artist(
     #     output_artist="scraping_history/artists.csv",
     #     output_feat="scraping_history/feats.csv",
@@ -394,10 +403,22 @@ if __name__ == "__main__":
     #     output_linked_artists="scraping_history/linked_artists",
     #     nb_hops=4,
     #     artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-    #     redo_from_hop=2,
-    #     last_urn_scraped="0e0fOJrxIhI8gb7vizwwF7",
     #     min_album_date='2015-01-01'
     # )
+
+    # For retry
+    db.expand_from_artist(
+        output_artist="scraping_history/artists.csv",
+        output_feat="scraping_history/feats.csv",
+        output_label="scraping_history/labels.csv",
+        output_genre="scraping_history/genres.csv",
+        output_linked_artists="scraping_history/linked_artists",
+        nb_hops=4,
+        artist_urn="1afjj7vSBkpIjkiJdSV6bV",
+        redo_from_hop=2,
+        last_urn_scraped="4lDXfIznmGueBgTjI3qGUX",
+        min_album_date='2015-01-01'
+    )
 
     # post_treatment_scraping_history()
 
