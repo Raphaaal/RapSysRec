@@ -2,6 +2,7 @@ import io
 from itertools import combinations
 import neo4j
 import requests
+import time
 
 from csv_handler import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album, \
     get_scraped_artists, truncate_file
@@ -128,6 +129,17 @@ def get_album_release_dt(album):
     return album_release_dt
 
 
+def write_sample_linked_artist(linked_artists, csv_path):
+    with io.open(csv_path, 'a', newline='', encoding='utf-8') as f:
+        csv_writer = csv.writer(f)
+        for artist in linked_artists:
+            csv_writer.writerow(
+                [
+                    artist["urn"]
+                ]
+            )
+
+
 class Database:
 
     def __init__(self,
@@ -242,6 +254,17 @@ class Database:
         }
         write_label_to_csv(label, "scraping_history/labels.csv")
 
+        for i in range(5):
+            path = "scraping_history/linked_artists_" + str(i) + ".csv"
+            truncate_file(path)
+            linked_artist = [
+                {
+                    "urn": "urn"
+                }
+            ]
+
+            write_sample_linked_artist(linked_artist, path)
+
         self.graph.truncate()
         try:
             self.graph.set_constraints()
@@ -273,23 +296,17 @@ class Database:
                 logger.info("=              Writing next artists in linked_artists_%s                  =", str(i + 1))
                 logger.info("==========================================================================")
                 # Isolate artists already scraped
-                scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
-                for k in range(1, i):
-                    scraped_artists = scraped_artists.append(
-                        pd.read_csv(output_linked_artists + "_" + str(k) + ".csv").drop_duplicates()
-                    )
-                    print(k)
-                # Get artists to scrap
-                linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
-                # Exclude linked artists that have already been scraped
-                linked_artists = [
-                    elt[0] for elt in pd.concat(
-                        [
-                            linked_artists,
-                            scraped_artists
-                        ]
-                    ).drop_duplicates(keep=False).values.tolist()
-                ]
+                scraped_artists = pd.read_csv(output_artist, index_col=False)['artist_urn'].drop_duplicates()
+                scraped_artists.columns = ['urn']
+                # Get artists to scrap (excluding artists already scraped)
+                last_linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
+                linked_artists = pd.concat(
+                    [
+                        last_linked_artists,
+                        scraped_artists,
+                        scraped_artists
+                    ], ignore_index=True
+                )['urn'].drop_duplicates(keep=False)
 
                 # # Multi processing
                 # with ThreadPool(16) as p:
@@ -310,17 +327,22 @@ class Database:
                 #         pass
                 #     p.close()
                 #     p.join()
-
                 for urn in tqdm(linked_artists):
-                    self.create_from_artist(
-                        output_artist,
-                        output_label,
-                        output_feat,
-                        output_genre,
-                        output_linked_artists + "_" + str(i+1),
-                        urn,
-                        min_album_date
-                    )
+                    loop = True
+                    while loop:
+                        try:
+                            self.create_from_artist(
+                                output_artist,
+                                output_label,
+                                output_feat,
+                                output_genre,
+                                output_linked_artists + "_" + str(i + 1),
+                                urn,
+                                min_album_date
+                            )
+                            loop = False
+                        except requests.exceptions.ReadTimeout:
+                            pass
                 post_treatment_scraping_history()  # Remove duplicates
 
         if redo_from_hop:
@@ -333,44 +355,37 @@ class Database:
                 logger.info("=              Writing next artists in linked_artists_%s                  =", str(i + 1))
                 logger.info("==========================================================================")
                 # Isolate artists already scraped
-                scraped_artists = pd.read_csv(output_linked_artists + "_0.csv").drop_duplicates()
-                for k in range(1, i):
-                    scraped_artists = scraped_artists.append(
-                        pd.read_csv(output_linked_artists + "_" + str(k) + ".csv").drop_duplicates()
-                    )
-                # Get artists to scrap
-                linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
-                linked_artists = pd.concat([linked_artists, scraped_artists]).drop_duplicates(keep=False)
+                scraped_artists = pd.read_csv(output_artist, index_col=False)['artist_urn'].drop_duplicates()
+                scraped_artists.columns = ['urn']
+                # Get artists to scrap (excluding artists already scraped)
+                last_linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
+                linked_artists = pd.concat(
+                    [
+                        last_linked_artists,
+                        scraped_artists,
+                        scraped_artists
+                    ], ignore_index=True
+                )['urn'].drop_duplicates(keep=False).reset_index()
                 if last_urn_scraped:
-                    linked_artists = linked_artists[(linked_artists.urn == last_urn_scraped).idxmax():]
-                linked_artists = [elt[0] for elt in linked_artists.values.tolist()]
+                    idx_last_urn = linked_artists.index[linked_artists['urn'] == last_urn_scraped][0]
+                    linked_artists = linked_artists[linked_artists.index > idx_last_urn]['urn']
+                linked_artists = linked_artists.values.tolist()
                 for urn in tqdm(linked_artists):
-                    try:
-                        self.create_from_artist(
-                            output_artist,
-                            output_label,
-                            output_feat,
-                            output_genre,
-                            output_linked_artists + "_" + str(i + 1),
-                            urn,
-                            min_album_date
-                        )
-                    except requests.exceptions.ReadTimeout:
-                        post_treatment_scraping_history()
-                        last_artist_urn = pd.read_csv(output_artist).tail(1)['artist_urn'].iloc[0]
-                        logger.info("Retry from artist %s", last_artist_urn)
-                        self.expand_from_artist(
-                            output_artist=output_artist,
-                            output_feat=output_feat,
-                            output_label=output_label,
-                            output_genre=output_genre,
-                            output_linked_artists=output_linked_artists,
-                            nb_hops=nb_hops,
-                            artist_urn=last_artist_urn,
-                            redo_from_hop=redo_from_hop,
-                            last_urn_scraped=last_urn_scraped,
-                            min_album_date=min_album_date
-                        )
+                    loop = True
+                    while loop:
+                        try:
+                            self.create_from_artist(
+                                output_artist,
+                                output_label,
+                                output_feat,
+                                output_genre,
+                                output_linked_artists + "_" + str(i + 1),
+                                urn,
+                                min_album_date
+                            )
+                            loop = False
+                        except requests.exceptions.ReadTimeout:
+                            pass
 
                 post_treatment_scraping_history()  # Remove duplicates
 
@@ -395,18 +410,6 @@ if __name__ == "__main__":
     # db.reset()
 
     # For start
-    # db.expand_from_artist(
-    #     output_artist="scraping_history/artists.csv",
-    #     output_feat="scraping_history/feats.csv",
-    #     output_label="scraping_history/labels.csv",
-    #     output_genre="scraping_history/genres.csv",
-    #     output_linked_artists="scraping_history/linked_artists",
-    #     nb_hops=4,
-    #     artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-    #     min_album_date='2015-01-01'
-    # )
-
-    # For retry
     db.expand_from_artist(
         output_artist="scraping_history/artists.csv",
         output_feat="scraping_history/feats.csv",
@@ -415,10 +418,22 @@ if __name__ == "__main__":
         output_linked_artists="scraping_history/linked_artists",
         nb_hops=4,
         artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-        redo_from_hop=2,
-        last_urn_scraped="4lDXfIznmGueBgTjI3qGUX",
         min_album_date='2015-01-01'
     )
+
+    # For retry
+    # db.expand_from_artist(
+    #     output_artist="scraping_history/artists.csv",
+    #     output_feat="scraping_history/feats.csv",
+    #     output_label="scraping_history/labels.csv",
+    #     output_genre="scraping_history/genres.csv",
+    #     output_linked_artists="scraping_history/linked_artists",
+    #     nb_hops=4,
+    #     artist_urn="1afjj7vSBkpIjkiJdSV6bV",
+    #     redo_from_hop=2,
+    #     last_urn_scraped="5K44yuP8WLPHoyvXNXOtED",
+    #     min_album_date='2015-01-01'
+    # )
 
     # post_treatment_scraping_history()
 
