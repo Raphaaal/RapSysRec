@@ -111,7 +111,10 @@ if __name__ == '__main__':
         "cn", "pa", "tn",  # graph features
         "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",  # triangle features
         "sp", "sl",  # community features
-        "nb_common_labels", "nb_common_genres", "squared_popularity_diff"
+        "nb_common_labels_2015", "nb_common_labels_2016", "nb_common_labels_2017", "nb_common_labels_2018", "nb_common_labels_2019",
+        "nb_feats_2015", "nb_feats_2016", "nb_feats_2017", "nb_feats_2018", "nb_feats_2019",
+        "both_active_2015", "both_active_2016", "both_active_2017", "both_active_2018", "both_active_2019",
+        "nb_common_genres", "squared_popularity_diff"
     ]
 
     # Train classifier

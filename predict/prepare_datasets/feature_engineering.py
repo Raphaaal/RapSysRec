@@ -26,7 +26,7 @@ def get_artist_specific_features(artist_df, min_nb_tn, driver):
     logger.info('Artist pairs computed.')
 
     # Calculate features
-    artist_df = extract_same_label_feature(artist_df, driver)
+    artist_df = extract_nb_common_label_year(artist_df, driver)
     artist_df = extract_same_genre_feature(artist_df, driver)
     artist_df = extract_popularity_diff_feature(artist_df, driver)
     artist_df = apply_graphy_features(artist_df, "FEAT", driver)  # We use the standard "FEAT" relationship type
@@ -117,21 +117,24 @@ def apply_community_features(data, partition_prop, louvain_prop, driver_instance
     return pd.merge(data, features, on=["node1", "node2"])
 
 
-def extract_same_label_feature(data, driver_instance):
+def extract_nb_common_label_year(data, driver_instance, year):
+    feature_name = 'nb_common_labels_' + str(year)
     # TODO: this function does not seem to work when working on the same id for p1 and p2
     query = """
         UNWIND $pairs AS pair
         MATCH (p1) WHERE id(p1) = pair.node1
         MATCH (p2) WHERE id(p2) = pair.node2
-        MATCH (l:Label) WHERE (p1)--(l)--(p2)
+        MATCH (p1)-[r1:LABEL]-(l)-[r2:LABEL]-(p2)
+        WHERE r.toInteger(date(r.date).year) == $year
         RETURN 
         pair.node1 AS node1, 
         pair.node2 AS node2,
-        COUNT(DISTINCT l) AS nb_common_labels
+        count(distinct l) AS $feature_name
         """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
     params = {
         "pairs": pairs,
+        "feature_name": feature_name
     }
 
     with driver_instance.session() as session:
@@ -218,31 +221,100 @@ def extract_popularity_diff_feature(data, driver_instance, default_pop=50):
     return pd.merge(data, same_label, on=["node1", "node2"])
 
 
+def extract_nb_feats_per_year(data, driver_instance, year):
+    feature_name = 'nb_feats_' + str(year)
+    query = """
+            UNWIND $pairs AS pair
+            MATCH (p1) WHERE id(p1) = pair.node1 
+            MATCH (p2) WHERE id(p2) = pair.node2
+            MATCH (p1)-[r:FEAT]-(p2)
+            WHERE r.toInteger(date(r.track_date).year) == $year
+            RETURN DISTINCT
+            pair.node1 AS node1, 
+            pair.node2 AS node2,
+            count (distinct r) AS $feature_name
+            """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs,
+        "year": year,
+        "feature_name": feature_name
+    }
+
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+
+    return nb_yearly_feats
+
+
+def extract_both_active_year(data, driver_instance, year):
+    # TODO : à tester
+    feature_name = 'both_active_' + str(year)
+    query = """
+            UNWIND $pairs AS pair
+            MATCH (p1) WHERE id(p1) = pair.node1 
+            MATCH (p2) WHERE id(p2) = pair.node2
+            MATCH (p1)-[r1:FEAT]-()
+            MATCH (p2)-[r2:FEAT]-()
+            WHERE  
+            RETURN DISTINCT
+            pair.node1 AS node1, 
+            pair.node2 AS node2,
+            CASE 
+                WHEN (r1.toInteger(date(r.track_date).year) == $year) AND (r2.toInteger(date(r.track_date).year) == $year) THEN 1
+                ELSE 0
+                END AS $feature_name
+            LIMIT 3
+            """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs,
+        "year": year,
+        "feature_name": feature_name
+    }
+
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+
+    return nb_yearly_feats
+
+
 def engineer_features(driver, dataset, train=True):
 
     # TODO: Algo : Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
     # -> Besoin de dupliquer les arcs (car pas de prise en compte du weight dans les algos GDS) ou bien de faire du feature engineering a part (same_label: true / false) ?
 
-    # TODO: add feature feat_percentage = nb tracks with ft / nb total tracks from the artist
-    # TODO : add feature for recency
-    # TODO: use transaction functions (session.write_transactions or session.read_transaction) instead of auto-commit transactions (session.run)
+    # TODO: add feature feat_percentage = nb tracks with ft / nb total tracks from the artist?
+    # TODO: add number of tracks per year?
 
     # Generate train or test sets
-    if train:
-        df_train_under = dataset
-        df_train_under = extract_same_label_feature(df_train_under, driver)
-        df_train_under = extract_same_genre_feature(df_train_under, driver)
-        df_train_under = extract_popularity_diff_feature(df_train_under, driver)
-        df_train_under = apply_graphy_features(df_train_under, "FEAT_EARLY", driver)
-        df_train_under = apply_triangles_features(df_train_under, "trianglesTrain", "coefficientTrain", driver)
-        df_train_under = apply_community_features(df_train_under, "partitionTrain", "louvainTrain", driver)
-        return df_train_under
-    else:
-        df_test_under = dataset
-        df_test_under = extract_same_label_feature(df_test_under, driver)
-        df_test_under = extract_same_genre_feature(df_test_under, driver)
-        df_test_under = extract_popularity_diff_feature(df_test_under, driver)
-        df_test_under = apply_graphy_features(df_test_under, "FEAT_LATE", driver)
-        df_test_under = apply_triangles_features(df_test_under, "trianglesTest", "coefficientTest", driver)
-        df_test_under = apply_community_features(df_test_under, "partitionTest", "louvainTest", driver)
-        return df_test_under
+    # if train:
+    #     df_train_under = dataset
+    #     df_train_under = extract_same_label_feature(df_train_under, driver)
+    #     df_train_under = extract_same_genre_feature(df_train_under, driver)
+    #     df_train_under = extract_popularity_diff_feature(df_train_under, driver)
+    #     df_train_under = apply_graphy_features(df_train_under, "FEAT_EARLY", driver)
+    #     df_train_under = apply_triangles_features(df_train_under, "trianglesTrain", "coefficientTrain", driver)
+    #     df_train_under = apply_community_features(df_train_under, "partitionTrain", "louvainTrain", driver)
+    #     return df_train_under
+    # else:
+    df_test_under = dataset
+    for i in range(2015, 2020):
+        df_test_under = extract_nb_common_label_year(df_test_under, driver, year=i)
+    df_test_under = extract_same_genre_feature(df_test_under, driver)
+    for i in range(2015, 2020):
+        df_test_under = extract_nb_feats_per_year(df_test_under, driver, year=i)
+    for i in range(2015, 2020):
+        df_test_under = extract_both_active_year(df_test_under, driver, year=i)
+    df_test_under = extract_popularity_diff_feature(df_test_under, driver)
+    df_test_under = apply_graphy_features(df_test_under, "FEAT", driver)
+    df_test_under = apply_triangles_features(df_test_under, "triangles", "coefficient", driver)
+    df_test_under = apply_community_features(df_test_under, "partition", "louvain", driver)
+
+    return df_test_under
