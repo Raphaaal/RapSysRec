@@ -39,7 +39,10 @@ def get_artist_specific_features(artist_df, min_nb_tn, driver):
     return artist_df
 
 
-def apply_graphy_features(data, rel_type, driver_instance=driver):
+def apply_graphy_features(data, rel_type, year, driver_instance=driver):
+    cn_name = 'cn_' + str(year)
+    pa_name = 'pa_' + str(year)
+    tn_name = 'tn_' + str(year)
     query = """
     UNWIND $pairs AS pair
     MATCH (p1) WHERE id(p1) = pair.node1
@@ -47,23 +50,27 @@ def apply_graphy_features(data, rel_type, driver_instance=driver):
     RETURN pair.node1 AS node1,
            pair.node2 AS node2,
            gds.alpha.linkprediction.commonNeighbors(p1, p2, {
-             relationshipQuery: $relType}) AS cn,
+             relationshipQuery: $relType}) AS $cn_name,
            gds.alpha.linkprediction.preferentialAttachment(p1, p2, {
-             relationshipQuery: $relType}) AS pa,
+             relationshipQuery: $relType}) AS $pa_name,
            gds.alpha.linkprediction.totalNeighbors(p1, p2, {
-             relationshipQuery: $relType}) AS tn
+             relationshipQuery: $relType}) AS $tn_name
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
 
     with driver_instance.session() as session:
-        result = session.run(query, {"pairs": pairs, "relType": rel_type})
+        result = session.run(query, {"pairs": pairs, "relType": rel_type, "cn_name": cn_name, "pa_name": pa_name, "tn_name": tn_name})
         features = pd.DataFrame([dict(record) for record in result])
 
     logger.info('Calculated graphy features.')
     return pd.merge(data, features, on=["node1", "node2"])
 
 
-def apply_triangles_features(data, triangles_prop, coefficient_prop, driver_instance=driver):
+def apply_triangles_features(data, year, triangles_prop, coefficient_prop, driver_instance=driver):
+    minTriangles = 'minTriangles_' + str(year)
+    maxTriangles = 'maxTriangles_' + str(year)
+    minCoefficient = 'minCoefficient_' + str(year)
+    maxCoefficient = 'maxCoefficient_' + str(year)
     query = """
     UNWIND $pairs AS pair
     MATCH (p1) WHERE id(p1) = pair.node1
@@ -71,16 +78,21 @@ def apply_triangles_features(data, triangles_prop, coefficient_prop, driver_inst
     RETURN 
     pair.node1 AS node1,
     pair.node2 AS node2,
-    apoc.coll.min([p1[$trianglesProp], p2[$trianglesProp]]) AS minTriangles,
-    apoc.coll.max([p1[$trianglesProp], p2[$trianglesProp]]) AS maxTriangles,
-    apoc.coll.min([p1[$coefficientProp], p2[$coefficientProp]]) AS minCoefficient,
-    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient
+    apoc.coll.min([p1[$trianglesProp], p2[$trianglesProp]]) AS $minTriangles,
+    apoc.coll.max([p1[$trianglesProp], p2[$trianglesProp]]) AS $maxTriangles,
+    apoc.coll.min([p1[$coefficientProp], p2[$coefficientProp]]) AS $minCoefficient,
+    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS $maxCoefficient
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
     params = {
-    "pairs": pairs,
-    "trianglesProp": triangles_prop,
-    "coefficientProp": coefficient_prop
+        "pairs": pairs,
+        "trianglesProp": triangles_prop,
+        "coefficientProp": coefficient_prop,
+        "minTriangles": minTriangles,
+        "maxTriangles": maxTriangles,
+        "minCoefficient": minCoefficient,
+        "maxCoefficient": maxCoefficient,
+
     }
 
     with driver_instance.session() as session:
@@ -92,21 +104,25 @@ def apply_triangles_features(data, triangles_prop, coefficient_prop, driver_inst
     return result
 
 
-def apply_community_features(data, partition_prop, louvain_prop, driver_instance=driver):
+def apply_community_features(data, year, partition_prop, louvain_prop, driver_instance=driver):
+    sp = 'sp_' + str(year)
+    sl = 'sl_' + str(year)
     query = """
     UNWIND $pairs AS pair
     MATCH (p1) WHERE id(p1) = pair.node1
     MATCH (p2) WHERE id(p2) = pair.node2
     RETURN pair.node1 AS node1,
     pair.node2 AS node2,
-    gds.alpha.linkprediction.sameCommunity(p1, p2, $partitionProp) AS sp,
-    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl
+    gds.alpha.linkprediction.sameCommunity(p1, p2, $partitionProp) AS $sp,
+    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS $sl
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
     params = {
-    "pairs": pairs,
-    "partitionProp": partition_prop,
-    "louvainProp": louvain_prop
+        "pairs": pairs,
+        "partitionProp": partition_prop,
+        "louvainProp": louvain_prop,
+        "sp": sp,
+        "sl": sl,
     }
 
     with driver_instance.session() as session:
@@ -293,17 +309,6 @@ def engineer_features(driver, dataset, train=True):
     # TODO: add feature feat_percentage = nb tracks with ft / nb total tracks from the artist?
     # TODO: add number of tracks per year?
 
-    # Generate train or test sets
-    # if train:
-    #     df_train_under = dataset
-    #     df_train_under = extract_same_label_feature(df_train_under, driver)
-    #     df_train_under = extract_same_genre_feature(df_train_under, driver)
-    #     df_train_under = extract_popularity_diff_feature(df_train_under, driver)
-    #     df_train_under = apply_graphy_features(df_train_under, "FEAT_EARLY", driver)
-    #     df_train_under = apply_triangles_features(df_train_under, "trianglesTrain", "coefficientTrain", driver)
-    #     df_train_under = apply_community_features(df_train_under, "partitionTrain", "louvainTrain", driver)
-    #     return df_train_under
-    # else:
     df_test_under = dataset
     for i in range(2015, 2020):
         df_test_under = extract_nb_common_label_year(df_test_under, driver, year=i)
@@ -313,8 +318,15 @@ def engineer_features(driver, dataset, train=True):
     for i in range(2015, 2020):
         df_test_under = extract_both_active_year(df_test_under, driver, year=i)
     df_test_under = extract_popularity_diff_feature(df_test_under, driver)
-    df_test_under = apply_graphy_features(df_test_under, "FEAT", driver)
-    df_test_under = apply_triangles_features(df_test_under, "triangles", "coefficient", driver)
-    df_test_under = apply_community_features(df_test_under, "partition", "louvain", driver)
+
+    df_test_under = apply_graphy_features(df_test_under, "FEAT", 'all', driver)
+    df_test_under = apply_triangles_features(df_test_under, 'all', "triangles_all", "coefficient_all", driver)
+    df_test_under = apply_community_features(df_test_under, 'all', "partition_all", "louvain_all", driver)
+
+    years = ['2015', '2016', '2017', '2018', '2019']
+    for year in years:
+        df_test_under = apply_graphy_features(df_test_under, "FEAT_"+str(year), str(year), driver)
+        df_test_under = apply_triangles_features(df_test_under, str(year), "triangles_"+str(year), "coefficient_"+str(year), driver)
+        df_test_under = apply_community_features(df_test_under, str(year), "partition_"+str(year), "louvain_"+str(year), driver)
 
     return df_test_under

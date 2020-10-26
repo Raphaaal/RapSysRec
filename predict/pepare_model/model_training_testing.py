@@ -108,8 +108,20 @@ if __name__ == '__main__':
     # Train / test / artist / full sets import
     train_set, test_set, hamza, full_set = import_datasets()
     columns = [
-        "cn", "pa", "tn",  # graph features
-        "minTriangles", "maxTriangles", "minCoefficient", "maxCoefficient",  # triangle features
+        "cn_all", "pa_all", "tn_all",  # graph features
+        "cn_2015", "pa_2015", "tn_2015",  # graph features
+        "cn_2016", "pa_2016", "tn_2016",  # graph features
+        "cn_2017", "pa_2017", "tn_2017",  # graph features
+        "cn_2018", "pa_2018", "tn_2018",  # graph features
+        "cn_2019", "pa_2019", "tn_2019",  # graph features
+
+        "minTriangles_all", "maxTriangles_all", "minCoefficient_all", "maxCoefficient_all",  # triangle features
+        "minTriangles_2015", "maxTriangles_2015", "minCoefficient_2015", "maxCoefficient_2015",  # triangle features
+        "minTriangles_2016", "maxTriangles_2016", "minCoefficient_2016", "maxCoefficient_2016",  # triangle features
+        "minTriangles_2017", "maxTriangles_2017", "minCoefficient_2017", "maxCoefficient_2017",  # triangle features
+        "minTriangles_2018", "maxTriangles_2018", "minCoefficient_2018", "maxCoefficient_2018",  # triangle features
+        "minTriangles_2019", "maxTriangles_2019", "minCoefficient_2019", "maxCoefficient_2019",  # triangle features
+
         "sp", "sl",  # community features
         "nb_common_labels_2015", "nb_common_labels_2016", "nb_common_labels_2017", "nb_common_labels_2018", "nb_common_labels_2019",
         "nb_feats_2015", "nb_feats_2016", "nb_feats_2017", "nb_feats_2018", "nb_feats_2019",

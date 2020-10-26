@@ -1,43 +1,5 @@
 def write_louvain(driver):
 
-    # query = """
-    # CALL gds.louvain.stream({
-    #   nodeProjection: 'Artist',
-    #   relationshipProjection: {
-    #     FEAT_EARLY: {
-    #       type: 'FEAT_EARLY',
-    #       orientation: 'UNDIRECTED'
-    #     }
-    #   },
-    #   includeIntermediateCommunities: true
-    # })
-    # YIELD nodeId, communityId, intermediateCommunityIds
-    # WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
-    # SET node.louvainTrain = smallestCommunity;
-    # """
-    #
-    # with driver.session() as session:
-    #     session.run(query)
-    #
-    # query = """
-    # CALL gds.louvain.stream({
-    #   nodeProjection: 'Artist',
-    #   relationshipProjection: {
-    #     FEAT_LATE: {
-    #       type: 'FEAT_LATE',
-    #       orientation: 'UNDIRECTED'
-    #     }
-    #   },
-    #   includeIntermediateCommunities: true
-    # })
-    # YIELD nodeId, communityId, intermediateCommunityIds
-    # WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
-    # SET node.louvainTest = smallestCommunity;
-    # """
-    #
-    # with driver.session() as session:
-    #     session.run(query)
-
     query = """
     CALL gds.louvain.stream({
       nodeProjection: 'Artist',
@@ -51,8 +13,35 @@ def write_louvain(driver):
     })
     YIELD nodeId, communityId, intermediateCommunityIds
     WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
-    SET node.louvain = smallestCommunity;
+    SET node.louvain_all = smallestCommunity;
     """
 
     with driver.session() as session:
         session.run(query)
+
+
+def write_louvain_year(year, driver):
+    rel_type = 'FEAT_' + str(year)
+    property_name = 'louvain_' + str(year)
+    query = """
+    CALL gds.louvain.stream({
+      nodeProjection: 'Artist',
+      relationshipProjection: {
+        FEAT: {
+          type: '$rel_type',
+          orientation: 'UNDIRECTED'
+        }
+      },
+      includeIntermediateCommunities: true
+    })
+    YIELD nodeId, communityId, intermediateCommunityIds
+    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
+    SET node.$property_name = smallestCommunity;
+    """
+    params = {"rel_type": rel_type, "property_name": property_name}
+
+    with driver.session() as session:
+        session.run(query, params)
+
+
+
