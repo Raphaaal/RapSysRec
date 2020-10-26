@@ -79,7 +79,8 @@ def write_label_to_csv(label, csv_path):
         csv_writer.writerow(
             [
                 label["artist_urn"],
-                label["label"]
+                label["label"],
+                label["date"]
             ]
         )
 
@@ -98,16 +99,17 @@ def write_genre_to_csv(genres, csv_path):
             )
 
 
-def write_artist_to_csv(artist, csv_path):
+def write_artist_to_csv(artists, csv_path):
     with io.open(csv_path, 'a', newline='', encoding='utf-8') as f:
         csv_writer = csv.writer(f)
-        csv_writer.writerow(
-            [
-                artist["artist_urn"],
-                artist["artist_name"],
-                artist["artist_popularity"]
-            ]
-        )
+        for artist in artists:
+            csv_writer.writerow(
+                [
+                    artist["artist_urn"],
+                    artist["artist_name"],
+                    artist["artist_popularity"]
+                ]
+            )
 
 
 class Database:
@@ -141,7 +143,8 @@ class Database:
         if album['label']:
             label = {
                 'artist_urn': artist_urn,
-                'label': album['label']
+                'label': album['label'],
+                'date': album['release_date']
             }
             write_label_to_csv(label, output_label)
 
@@ -165,11 +168,13 @@ class Database:
             write_genre_to_csv(genres, output_genre)
 
         # Artist
-        artist_info = {
-            'artist_urn': artist_urn,
-            'artist_name': artist['artist_name'],
-            'artist_popularity': artist['artist_popularity'],
-        }
+        artist_info = [
+            {
+                'artist_urn': artist_urn,
+                'artist_name': artist['artist_name'],
+                'artist_popularity': artist['artist_popularity'],
+            }
+        ]
         write_artist_to_csv(artist_info, output_artist)
 
         logger.info('Artist %s scraped.', artist['artist_name'])
@@ -213,7 +218,8 @@ class Database:
         truncate_file("scraping_history/labels.csv")
         label = {
             'artist_urn': 'artist_urn',
-            'label': 'label'
+            'label': 'label',
+            'date': 'date'
         }
         write_label_to_csv(label, "scraping_history/labels.csv")
 
@@ -237,7 +243,7 @@ class Database:
             logger.info("==========================================================================")
             logger.info("=                                  HOP #0                                =")
             logger.info("==========================================================================")
-            self.create_from_artist(output_label, output_feat, output_genre, output_linked_artists + "_1", artist_urn)
+            self.create_from_artist(output_artist, output_label, output_feat, output_genre, output_linked_artists + "_1", artist_urn)
 
             # Hop on and scrape on
             for i in range(1, nb_hops):
@@ -308,7 +314,7 @@ if __name__ == "__main__":
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
 
-    # db.reset()
+    db.reset()
 
     # db.expand_from_artist(
     #     output_artist="scraping_history/artists_.csv",
@@ -317,37 +323,38 @@ if __name__ == "__main__":
     #     output_genre="scraping_history/genres.csv",
     #     output_linked_artists="scraping_history/linked_artists",
     #     nb_hops=4,
-    #     artist_urn="5gs4Sm2WQUkcGeikMcVHbh"
+    #     artist_urn="1afjj7vSBkpIjkiJdSV6bV"
     # )
 
-    # db.expand_from_artist(
-    #     output_artist="scraping_history/artists_.csv",
-    #     output_feat="scraping_history/feats.csv",
-    #     output_label="scraping_history/labels.csv",
-    #     output_genre="scraping_history/genres.csv",
-    #     output_linked_artists="scraping_history/linked_artists",
-    #     nb_hops=4,
-    #     artist_urn="5gs4Sm2WQUkcGeikMcVHbh",
-    #     redo_from_hop=3,
-    #     last_urn_scraped="2x6fya70OYIW6J2TZz25lQ"
-    # )
+    db.expand_from_artist(
+        output_artist="scraping_history/artists.csv",
+        output_feat="scraping_history/feats.csv",
+        output_label="scraping_history/labels.csv",
+        output_genre="scraping_history/genres.csv",
+        output_linked_artists="scraping_history/linked_artists",
+        nb_hops=4,
+        artist_urn="1afjj7vSBkpIjkiJdSV6bV",
+        redo_from_hop=2,
+        last_urn_scraped="6f4XkbvYlXMH0QgVRzW0sM"
+    )
 
-    # post_treatment_scraping_history()
-    #
-    # logger.info('Starting artists writing to DB')
-    # genres = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
-    # logger.info('Ended artists writing to DB')
-    #
-    # logger.info('Starting genres writing to DB')
-    # genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
-    # logger.info('Ended genres writing to DB')
-    #
-    # logger.info('Starting labels writing to DB')
-    # labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
-    # logger.info('Ended labels writing to DB')
+    post_treatment_scraping_history()
 
-    # db.post_treatment_db()
+    logger.info('Starting artists writing to DB')
+    genres = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/artists.csv')
+    genres = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/artists_.csv')
+    logger.info('Ended artists writing to DB')
 
-    # logger.info('Starting feats writing to DB')
-    # feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
-    # logger.info('Ended feats writing to DB')
+    logger.info('Starting genres writing to DB')
+    genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
+    logger.info('Ended genres writing to DB')
+
+    logger.info('Starting labels writing to DB')
+    labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
+    logger.info('Ended labels writing to DB')
+
+    db.post_treatment_db()
+
+    logger.info('Starting feats writing to DB')
+    feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
+    logger.info('Ended feats writing to DB')

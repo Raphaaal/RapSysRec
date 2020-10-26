@@ -128,14 +128,12 @@ class Neo4JHandler:
     def create_feats(self, csv_path):
         path = "file:///" + csv_path
         with self.driver.session() as session:
-            # result = session.write_transaction(self._create_feats_csv, path)
             result = self._create_feats_csv(session, path)
             return result
 
     def create_labels(self, csv_path):
         path = "file:///" + csv_path
         with self.driver.session() as session:
-            # result = session.write_transaction(self._create_labels_csv, path)
             result = self._create_labels_csv(session, path)
             return result
 
@@ -450,9 +448,12 @@ class Neo4JHandler:
 
             MERGE (l: Label {name: row.label})
 
-            MERGE (a)-[:LABEL]->(l)
+            MERGE (a)-[r:LABEL {date: $date}]->(l)
             """,
-            csv_path=csv_path
+            {
+                'csv_path': csv_path,
+                'date': date
+            }
         )
         return [row[0] for row in result]
 
