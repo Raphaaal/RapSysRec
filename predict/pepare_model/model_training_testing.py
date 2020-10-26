@@ -125,5 +125,5 @@ if __name__ == '__main__':
     classifier = train_classifier(full_set, columns=columns)
 
     # Artist specific predictions
-    result_hamza = get_artist_predictions(hamza, classifier, columns, "5gs4Sm2WQUkcGeikMcVHbh")
+    result_hamza = get_artist_predictions(hamza, classifier, columns, "1afjj7vSBkpIjkiJdSV6bV")
     result_hamza.to_csv("artist_predictions.csv")
