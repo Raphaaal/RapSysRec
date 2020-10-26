@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     # split_early_late(driver, min_year=2016)
 
-    # write_louvain(driver)
-    # write_triangles_props(driver)
-    # write_clustering_coeff(driver)
-    # write_label_propagation(driver)
+    write_louvain(driver)
+    write_triangles_props(driver)
+    write_clustering_coeff(driver)
+    write_label_propagation(driver)

@@ -5,6 +5,7 @@ from predict.prepare_datasets.feature_engineering import engineer_features, get_
 from predict.prepare_datasets.test_set import get_test_set
 from predict.prepare_datasets.train_set import get_train_set
 import logging
+from sklearn.model_selection import train_test_split
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -42,15 +43,21 @@ if __name__ == '__main__':
     )
     driver = graph.driver
 
+    # Build dataset
     logger.info("Started training set creation")
-    train_set = get_train_set(max_links=10000, batch_size=2, driver=driver)
+    train_set = get_train_set(max_links=10000, batch_size=2, target_year=2020, driver=driver)
     logger.info("Ended training set creation")
-    train_set.to_csv('train_set.csv')
+    train_set.to_csv('train_set.csv', index=False)
 
-    logger.info("Started testing set creation")
-    test_set = get_test_set(max_links=10000,  batch_size=4, driver=driver)
-    test_set.to_csv('test_set.csv')
-    logger.info("Ended testing set creation")
+    # Train / test split
+    train, test = train_test_split(train_set, test_size=0.3)
+    train.to_csv('train_set.csv', index=False)
+    test.to_csv('test_set.csv', index=False)
+
+    # logger.info("Started testing set creation")
+    # test_set = get_test_set(max_links=10000,  batch_size=4, driver=driver)
+    # test_set.to_csv('test_set.csv')
+    # logger.info("Ended testing set creation")
 
     truncate_file('train_set_features.csv')
     for i, chunk in enumerate(pd.read_csv('train_set.csv', chunksize=1)):
