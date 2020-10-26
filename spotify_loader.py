@@ -41,7 +41,7 @@ class SpotifyLoader:
             client_id=self.client_id,
             client_secret=self.client_secret
         )
-        self.sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager, requests_timeout=10)
+        self.sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager, requests_timeout=20)
 
     def get_artist_by_name(self, name):
         results = self.sp.search(q='artist:' + name, type='artist')
