@@ -64,13 +64,14 @@ def import_datasets():
     test_set = pd.read_csv('../prepare_datasets/test_set_features.csv')
     hamza = pd.read_csv('../prepare_datasets/artist_set_features.csv')
     full_set = pd.read_csv('../prepare_datasets/full_set_features.csv')
+    validation_set = pd.read_csv('../prepare_datasets/validation_set_features.csv')
     return train_set, test_set, hamza, full_set
 
 
 def train_classifier(train_set, columns):
     train_set.drop(columns=["node1", "node2"])
     # classifier = RandomForestClassifier(n_estimators=300, max_depth=10, random_state=0)
-    classifier = XGBClassifier(n_estimators=300, max_depth=10, random_state=0)
+    classifier = XGBClassifier(n_estimators=30, max_depth=10, random_state=0)
     X = train_set[columns]
     y = train_set["label"]
     classifier.fit(X, y)
@@ -109,7 +110,7 @@ if __name__ == '__main__':
     driver = graph.driver
 
     # Train / test / artist / full sets import
-    train_set, test_set, hamza, full_set = import_datasets()
+    train_set, test_set, hamza, full_set, validation_set = import_datasets()
     columns = [
         "cn_all", "pa_all", "tn_all",  # graph features
         "cn_2015", "pa_2015", "tn_2015",  # graph features

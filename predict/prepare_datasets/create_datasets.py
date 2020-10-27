@@ -62,10 +62,21 @@ if __name__ == '__main__':
     logger.info("Ended testing set creation")
     train_set.to_csv('test_set.csv', index=False)
 
+    # Build validation dataset
+    logger.info("Started validation set creation")
+    validation_set = get_test_set(max_links=100, density=0.01, batch_size=2, target_year=2020, driver=driver)
+    logger.info("Ended validation set creation")
+    validation_set.to_csv('validation_set.csv', index=False)
+
     truncate_file('train_set_features.csv')
     for i, chunk in enumerate(pd.read_csv('train_set.csv', chunksize=1)):
         write_features(path='train_set_features.csv', iteration=i, driver=chunk, dataset=chunk)
     logger.info('Train set with features computed')
+
+    truncate_file('validation_set_features.csv')
+    for i, chunk in enumerate(pd.read_csv('validation_set.csv', chunksize=1)):
+        write_features(path='validation_set_features.csv', iteration=i, driver=chunk, dataset=chunk)
+    logger.info('Validation set with features computed')
 
     truncate_file('test_set_features.csv')
     for i, chunk in enumerate(pd.read_csv('test_set.csv', chunksize=1)):
@@ -74,7 +85,11 @@ if __name__ == '__main__':
 
     # Create full set
     truncate_file('full_set_features.csv')
-    full_set = pd.read_csv('train_set_features.csv').append(pd.read_csv('test_set_features.csv'), ignore_index=True)
+    full_set = pd.read_csv('train_set_features.csv').append(
+        pd.read_csv('test_set_features.csv'), ignore_index=True
+    ).append(
+        pd.read_csv('validation_set_features.csv'), ignore_index=True
+    )
     full_set.to_csv('full_set_features.csv')
     logger.info('Full set computed')
 
