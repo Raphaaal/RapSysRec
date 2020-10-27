@@ -7,6 +7,8 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 import logging
 from joblib import dump
+from xgboost import XGBClassifier
+
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
@@ -67,7 +69,8 @@ def import_datasets():
 
 def train_classifier(train_set, columns):
     train_set.drop(columns=["node1", "node2"])
-    classifier = RandomForestClassifier(n_estimators=300, max_depth=10, random_state=0)
+    # classifier = RandomForestClassifier(n_estimators=300, max_depth=10, random_state=0)
+    classifier = XGBClassifier(n_estimators=300, max_depth=10, random_state=0)
     X = train_set[columns]
     y = train_set["label"]
     classifier.fit(X, y)
@@ -134,6 +137,7 @@ if __name__ == '__main__':
     classifier = train_classifier(train_set, columns=columns)
 
     # Model analysis
+    # TODO : ROC curve
     test_classifier(classifier, test_set, columns)
 
     # Model re-training with full set
