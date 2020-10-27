@@ -1,6 +1,6 @@
 import csv
 import io
-
+import pandas as pd
 
 def truncate_file(file_path):
     f = open(file_path, "w+")
@@ -64,3 +64,10 @@ def write_list_to_csv(pairs, csv_path, mode='a'):
         csv_writer = csv.writer(f)
         for pair in pairs:
             csv_writer.writerow(pair)
+
+
+def remove_nan(path, cols):
+    df = pd.read_csv(path)
+    df_clean = df.dropna()[cols]
+    df_clean.to_csv(path, index=False)
+
