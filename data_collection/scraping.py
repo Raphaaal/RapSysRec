@@ -1,23 +1,13 @@
 import io
-from itertools import combinations
-import neo4j
 import requests
-import time
 
-from csv_handler import check_artist_is_scraped, write_scraped_artist, check_album_is_scraped, write_scraped_album, \
-    get_scraped_artists, truncate_file
-from neo4j_handler import Neo4JHandler
-from scraping_history.scraping_history_handler import post_treatment_scraping_history
-from spotify_loader import SpotifyLoader
+from handlers.csv_handler import truncate_file
+from data_collection.scraping_history.scraping_history_handler import post_treatment_scraping_history
+from handlers.spotify_loader import SpotifyLoader
 import logging
-from multiprocessing.dummy import Pool as ThreadPool
-import itertools
-from pprint import pprint
 import csv
-import json
 import pandas as pd
 from tqdm import tqdm
-import istarmap
 from datetime import datetime
 
 logging.basicConfig(
@@ -120,12 +110,15 @@ def write_artist_to_csv(artists, csv_path):
 
 def get_album_release_dt(album):
     album_release_dt = None
-    if len(album['release_date']) == 4:
-        album_release_dt = datetime.strptime(album['release_date'], '%Y')
-    if len(album['release_date']) == 7:
-        album_release_dt = datetime.strptime(album['release_date'], '%Y-%m')
-    if len(album['release_date']) == 10:
-        album_release_dt = datetime.strptime(album['release_date'], '%Y-%m-%d')
+    try:
+        if len(album['release_date']) == 4:
+            album_release_dt = datetime.strptime(album['release_date'], '%Y')
+        if len(album['release_date']) == 7:
+            album_release_dt = datetime.strptime(album['release_date'], '%Y-%m')
+        if len(album['release_date']) == 10:
+            album_release_dt = datetime.strptime(album['release_date'], '%Y-%m-%d')
+    except ValueError:
+        album_release_dt = None
     return album_release_dt
 
 
@@ -140,7 +133,7 @@ def write_sample_linked_artist(linked_artists, csv_path):
             )
 
 
-class Database:
+class Scraping:
 
     def __init__(self,
                  # neo4j_user, neo4j_password,
@@ -182,8 +175,9 @@ class Database:
         albums = self.spotify.get_artist_albums(artist_urn)
         for album in albums:
             album_release_dt = get_album_release_dt(album)
-            if album_release_dt > datetime.strptime(min_album_date, '%Y-%m-%d'):
-                self.create_from_album(output_label, output_feat, output_linked_artists, album, artist_urn)
+            if album_release_dt:
+                if album_release_dt > datetime.strptime(min_album_date, '%Y-%m-%d'):
+                    self.create_from_album(output_label, output_feat, output_linked_artists, album, artist_urn)
 
         # Genres
         artist = self.spotify.get_artist_info(self.spotify.get_artist_by_id(artist_urn))
@@ -265,12 +259,12 @@ class Database:
 
             write_sample_linked_artist(linked_artist, path)
 
-        self.graph.truncate()
-        try:
-            self.graph.set_constraints()
-            logger.info("DB constraints set.")
-        except neo4j.exceptions.ClientError:
-            logger.info("Exception during DB constraints setting.")
+        # self.graph.truncate()
+        # try:
+        #     self.graph.set_constraints()
+        #     logger.info("DB constraints set.")
+        # except neo4j.exceptions.ClientError:
+        #     logger.info("Exception during DB constraints setting.")
 
         logger.info('Reset done.')
 
@@ -400,7 +394,7 @@ class Database:
 
 
 if __name__ == "__main__":
-    db = Database(
+    db = Scraping(
         # neo4j_user="neo4j",
         # neo4j_password="root",
         spotify_client_id="28d60111ea634effb71f87304bed9285",
@@ -430,28 +424,9 @@ if __name__ == "__main__":
         output_linked_artists="scraping_history/linked_artists",
         nb_hops=4,
         artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-        redo_from_hop=2,
-        last_urn_scraped="42ldsF5URtgNRm2gBOZn2K",
+        redo_from_hop=3,
+        last_urn_scraped="7qaqnM2Nc2VlUaT4ivx22o",
         min_album_date='2015-01-01'
     )
 
-    # post_treatment_scraping_history()
-
-    # logger.info('Starting artists writing to DB')
-    # artists = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/artists.csv')
-    # logger.info('Ended artists writing to DB')
-    #
-    # logger.info('Starting genres writing to DB')
-    # genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
-    # logger.info('Ended genres writing to DB')
-    #
-    # logger.info('Starting labels writing to DB')
-    # labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
-    # logger.info('Ended labels writing to DB')
-
-    # db.post_treatment_db()
-    # logger.info("Removed duplicates from scraping history files")
-
-    # logger.info('Starting feats writing to DB')
-    # feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
-    # logger.info('Ended feats writing to DB')
+    post_treatment_scraping_history()

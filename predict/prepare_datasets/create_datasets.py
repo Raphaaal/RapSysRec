@@ -1,11 +1,10 @@
-from csv_handler import truncate_file
-from neo4j_handler import Neo4JHandler
+from handlers.csv_handler import truncate_file
+from handlers.neo4j_handler import Neo4JHandler
 import pandas as pd
-from predict.prepare_datasets.feature_engineering import engineer_features, get_artist_specific_features
+from predict.prepare_datasets.feature_engineering import engineer_features
 from predict.prepare_datasets.test_set import get_test_set
 from predict.prepare_datasets.train_set import get_train_set
 import logging
-from sklearn.model_selection import train_test_split
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',

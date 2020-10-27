@@ -1,12 +1,10 @@
-import random
-from csv_handler import write_list_to_csv, truncate_file
+from handlers.csv_handler import write_list_to_csv, truncate_file
 # from neo4j_handler import Neo4JHandler
 import pandas as pd
 import logging
 # import numpy as np
 # import itertools
 # from random import shuffle
-from random import shuffle
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',

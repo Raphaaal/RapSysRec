@@ -1,4 +1,4 @@
-from neo4j_handler import Neo4JHandler
+from handlers.neo4j_handler import Neo4JHandler
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import recall_score
@@ -6,7 +6,7 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import accuracy_score
 import numpy as np
 import logging
-from joblib import dump, load
+from joblib import dump
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 

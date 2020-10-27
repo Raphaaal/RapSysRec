@@ -1,6 +1,4 @@
-from neo4j_handler import Neo4JHandler
-from predict.prepare_graph.early_late_split import split_early_late
-from predict.prepare_graph.ft_year_distribution import set_feat_nb, set_max_year, get_year_distribution
+from handlers.neo4j_handler import Neo4JHandler
 from predict.prepare_graph.write_clustering_coeff import write_clustering_coeff, write_clustering_coeff_year
 from predict.prepare_graph.write_label_propagation import write_label_propagation, write_label_propagation_year
 from predict.prepare_graph.write_louvain import write_louvain, write_louvain_year

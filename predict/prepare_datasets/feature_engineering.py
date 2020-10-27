@@ -1,6 +1,5 @@
-from neo4j_handler import Neo4JHandler
+from handlers.neo4j_handler import Neo4JHandler
 import pandas as pd
-from predict.prepare_graph.early_late_split import split_early_late
 import logging
 
 logging.basicConfig(
