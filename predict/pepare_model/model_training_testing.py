@@ -62,10 +62,10 @@ def get_relevant_predictions(pdf, concerned_artist_id, graph):
 def import_datasets():
     train_set = pd.read_csv('../prepare_datasets/train_set_features.csv')
     test_set = pd.read_csv('../prepare_datasets/test_set_features.csv')
-    hamza = pd.read_csv('../prepare_datasets/artist_set_features.csv')
+    artist_specific = pd.read_csv('../prepare_datasets/artist_set_features.csv')
     full_set = pd.read_csv('../prepare_datasets/full_set_features.csv')
     validation_set = pd.read_csv('../prepare_datasets/validation_set_features.csv')
-    return train_set, test_set, hamza, full_set
+    return train_set, test_set, artist_specific, full_set, validation_set
 
 
 def train_classifier(train_set, columns):
@@ -110,40 +110,65 @@ if __name__ == '__main__':
     driver = graph.driver
 
     # Train / test / artist / full sets import
-    train_set, test_set, hamza, full_set, validation_set = import_datasets()
+    train_set, test_set, artist_specific, full_set, validation_set = import_datasets()
     columns = [
-        "cn_all", "pa_all", "tn_all",  # graph features
-        "cn_2015", "pa_2015", "tn_2015",  # graph features
-        "cn_2016", "pa_2016", "tn_2016",  # graph features
-        "cn_2017", "pa_2017", "tn_2017",  # graph features
-        "cn_2018", "pa_2018", "tn_2018",  # graph features
-        "cn_2019", "pa_2019", "tn_2019",  # graph features
+        # graph features
+        "cn_all", "pa_all", "tn_all",
+        "cn_2015", "pa_2015", "tn_2015",
+        "cn_2016", "pa_2016", "tn_2016",
+        "cn_2017", "pa_2017", "tn_2017",
+        "cn_2018", "pa_2018", "tn_2018",
+        "cn_2019", "pa_2019", "tn_2019",
 
-        "minTriangles_all", "maxTriangles_all", "minCoefficient_all", "maxCoefficient_all",  # triangle features
-        "minTriangles_2015", "maxTriangles_2015", "minCoefficient_2015", "maxCoefficient_2015",  # triangle features
-        "minTriangles_2016", "maxTriangles_2016", "minCoefficient_2016", "maxCoefficient_2016",  # triangle features
-        "minTriangles_2017", "maxTriangles_2017", "minCoefficient_2017", "maxCoefficient_2017",  # triangle features
-        "minTriangles_2018", "maxTriangles_2018", "minCoefficient_2018", "maxCoefficient_2018",  # triangle features
-        "minTriangles_2019", "maxTriangles_2019", "minCoefficient_2019", "maxCoefficient_2019",  # triangle features
+        # triangle features
+        "minTriangles_all", "maxTriangles_all", "minCoefficient_all", "maxCoefficient_all",
+        "minTriangles_2015", "maxTriangles_2015", "minCoefficient_2015", "maxCoefficient_2015",
+        "minTriangles_2016", "maxTriangles_2016", "minCoefficient_2016", "maxCoefficient_2016",
+        "minTriangles_2017", "maxTriangles_2017", "minCoefficient_2017", "maxCoefficient_2017",
+        "minTriangles_2018", "maxTriangles_2018", "minCoefficient_2018", "maxCoefficient_2018",
+        "minTriangles_2019", "maxTriangles_2019", "minCoefficient_2019", "maxCoefficient_2019",
 
-        "sp", "sl",  # community features
-        "nb_common_labels_2015", "nb_common_labels_2016", "nb_common_labels_2017", "nb_common_labels_2018", "nb_common_labels_2019",
-        "nb_feats_2015", "nb_feats_2016", "nb_feats_2017", "nb_feats_2018", "nb_feats_2019",
-        "both_active_2015", "both_active_2016", "both_active_2017", "both_active_2018", "both_active_2019",
+        # community features
+        "sp_all", "sl_all",
+        "sp_2015", "sl_2015",
+        "sp_2016", "sl_2016",
+        "sp_2017", "sl_2017",
+        "sp_2018", "sl_2018",
+        "sp_2019", "sl_2019",
+
+        # Nb of common labels
+        "nb_common_labels_2015",
+        "nb_common_labels_2016",
+        "nb_common_labels_2017",
+        "nb_common_labels_2018",
+        "nb_common_labels_2019",
+
+        # Nb of feats
+        "nb_feats_2015",
+        "nb_feats_2016",
+        "nb_feats_2017",
+        "nb_feats_2018",
+        "nb_feats_2019",
+
+        # Degree of each node in the pair
+        "degree_p1_all", "degree_p1_2015", "degree_p1_2016", "degree_p1_2017", "degree_p1_2018", "degree_p1_2019",
+        "degree_p2_all", "degree_p2_2015", "degree_p2_2016", "degree_p2_2017", "degree_p2_2018", "degree_p2_2019",
+
         "nb_common_genres", "squared_popularity_diff"
-    ]
+    ]  # 79 features
 
     # Train classifier
-    # TODO: try a different classifier / hyper parameters / columns
+    # TODO: try a different classifier / hyper parameters / columns and COMPARE THEIR AUC
     classifier = train_classifier(train_set, columns=columns)
 
     # Model analysis
     # TODO : ROC curve
-    test_classifier(classifier, test_set, columns)
+    test_classifier(classifier, validation_set, columns)
+    # test_classifier(classifier, test_set, columns)
 
     # Model re-training with full set
     classifier = train_classifier(full_set, columns=columns)
 
     # Artist specific predictions
-    result_hamza = get_artist_predictions(hamza, classifier, columns, "1afjj7vSBkpIjkiJdSV6bV")
-    result_hamza.to_csv("artist_predictions.csv")
+    result_artist_specific = get_artist_predictions(artist_specific, classifier, columns, "1afjj7vSBkpIjkiJdSV6bV")
+    result_artist_specific.to_csv("artist_predictions.csv")

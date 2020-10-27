@@ -265,30 +265,175 @@ def extract_nb_feats_per_year(data, driver_instance, year):
     return nb_yearly_feats
 
 
-def extract_both_active_year(data, driver_instance, year):
+def nodes_degrees_year_all(data, driver_instance, year='all'):
     # TODO : à tester
-    feature_name = 'both_active_' + str(year)
+    feature_name_p1 = 'degree_p1_' + str(year)
+    feature_name_p2 = 'degree_p2_' + str(year)
     query = """
             UNWIND $pairs AS pair
-            MATCH (p1) WHERE id(p1) = pair.node1 
-            MATCH (p2) WHERE id(p2) = pair.node2
-            MATCH (p1)-[r1:FEAT]-()
-            MATCH (p2)-[r2:FEAT]-()
-            WHERE  
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:'FEAT']->()) as degree1
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:'FEAT']->()) as degree2
             RETURN DISTINCT
             pair.node1 AS node1, 
             pair.node2 AS node2,
-            CASE 
-                WHEN (r1.toInteger(date(r.track_date).year) == $year) AND (r2.toInteger(date(r.track_date).year) == $year) THEN 1
-                ELSE 0
-                END AS $feature_name
-            LIMIT 3
+            degree1 as $feature_name_p1,
+            degree2 as $feature_name_p2
             """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
     params = {
         "pairs": pairs,
-        "year": year,
-        "feature_name": feature_name
+        "feature_name_p1": feature_name_p1,
+        "feature_name_p2": feature_name_p2
+    }
+
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+
+    return nb_yearly_feats
+
+
+def nodes_degrees_year_2015(data, driver_instance, year='2015'):
+    # TODO : à tester
+    feature_name_p1 = 'degree_p1_' + str(year)
+    feature_name_p2 = 'degree_p2_' + str(year)
+    query = """
+            UNWIND $pairs AS pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:'FEAT_2015']->()) as degree1
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:'FEAT_2015']->()) as degree2
+            RETURN DISTINCT
+            pair.node1 AS node1, 
+            pair.node2 AS node2,
+            degree1 as $feature_name_p1,
+            degree2 as $feature_name_p2
+            """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs,
+        "feature_name_p1": feature_name_p1,
+        "feature_name_p2": feature_name_p2
+    }
+
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+
+    return nb_yearly_feats
+
+
+def nodes_degrees_year_2016(data, driver_instance, year='2016'):
+    # TODO : à tester
+    feature_name_p1 = 'degree_p1_' + str(year)
+    feature_name_p2 = 'degree_p2_' + str(year)
+    query = """
+            UNWIND $pairs AS pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:'FEAT_2016']->()) as degree1
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:'FEAT_2016']->()) as degree2
+            RETURN DISTINCT
+            pair.node1 AS node1, 
+            pair.node2 AS node2,
+            degree1 as $feature_name_p1,
+            degree2 as $feature_name_p2
+            """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs,
+        "feature_name_p1": feature_name_p1,
+        "feature_name_p2": feature_name_p2
+    }
+
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+
+    return nb_yearly_feats
+
+
+def nodes_degrees_year_2017(data, driver_instance, year='2017'):
+    # TODO : à tester
+    feature_name_p1 = 'degree_p1_' + str(year)
+    feature_name_p2 = 'degree_p2_' + str(year)
+    query = """
+            UNWIND $pairs AS pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:'FEAT_2017']->()) as degree1
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:'FEAT_2017']->()) as degree2
+            RETURN DISTINCT
+            pair.node1 AS node1, 
+            pair.node2 AS node2,
+            degree1 as $feature_name_p1,
+            degree2 as $feature_name_p2
+            """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs,
+        "feature_name_p1": feature_name_p1,
+        "feature_name_p2": feature_name_p2
+    }
+
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+
+    return nb_yearly_feats
+
+
+def nodes_degrees_year_2018(data, driver_instance, year='2018'):
+    # TODO : à tester
+    feature_name_p1 = 'degree_p1_' + str(year)
+    feature_name_p2 = 'degree_p2_' + str(year)
+    query = """
+            UNWIND $pairs AS pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:'FEAT_2018']->()) as degree1
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:'FEAT_2018']->()) as degree2
+            RETURN DISTINCT
+            pair.node1 AS node1, 
+            pair.node2 AS node2,
+            degree1 as $feature_name_p1,
+            degree2 as $feature_name_p2
+            """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs,
+        "feature_name_p1": feature_name_p1,
+        "feature_name_p2": feature_name_p2
+    }
+
+    with driver_instance.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+
+    return nb_yearly_feats
+
+
+def nodes_degrees_year_2019(data, driver_instance, year='2019'):
+    # TODO : à tester
+    feature_name_p1 = 'degree_p1_' + str(year)
+    feature_name_p2 = 'degree_p2_' + str(year)
+    query = """
+            UNWIND $pairs AS pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:'FEAT_2019']->()) as degree1
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:'FEAT_2019']->()) as degree2
+            RETURN DISTINCT
+            pair.node1 AS node1, 
+            pair.node2 AS node2,
+            degree1 as $feature_name_p1,
+            degree2 as $feature_name_p2
+            """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs,
+        "feature_name_p1": feature_name_p1,
+        "feature_name_p2": feature_name_p2
     }
 
     with driver_instance.session() as session:
@@ -314,8 +459,14 @@ def engineer_features(driver, dataset):
     df_test_under = extract_same_genre_feature(df_test_under, driver)
     for i in range(2015, 2020):
         df_test_under = extract_nb_feats_per_year(df_test_under, driver, year=i)
-    for i in range(2015, 2020):
-        df_test_under = extract_both_active_year(df_test_under, driver, year=i)
+
+    df_test_under = nodes_degrees_year_all(df_test_under, driver)
+    df_test_under = nodes_degrees_year_2015(df_test_under, driver)
+    df_test_under = nodes_degrees_year_2016(df_test_under, driver)
+    df_test_under = nodes_degrees_year_2017(df_test_under, driver)
+    df_test_under = nodes_degrees_year_2018(df_test_under, driver)
+    df_test_under = nodes_degrees_year_2019(df_test_under, driver)
+
     df_test_under = extract_popularity_diff_feature(df_test_under, driver)
 
     df_test_under = apply_graphy_features(df_test_under, "FEAT", 'all', driver)
