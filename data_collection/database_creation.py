@@ -61,20 +61,20 @@ if __name__ == "__main__":
 
 
     logger.info('Starting artists writing to DB')
-    artists = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/artists.csv')
+    artists = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/artists.csv')
     logger.info('Ended artists writing to DB')
 
     logger.info('Starting genres writing to DB')
-    genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/genres.csv')
+    genres = db.graph.create_genres('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/genres.csv')
     logger.info('Ended genres writing to DB')
 
     logger.info('Starting labels writing to DB')
-    labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/labels.csv')
+    labels = db.graph.create_labels('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/labels.csv')
     logger.info('Ended labels writing to DB')
 
     db.post_treatment_db()
     logger.info("Removed duplicates in DB")
 
     logger.info('Starting feats writing to DB')
-    feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/scraping_history/feats.csv')
+    feats = db.graph.create_feats('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
     logger.info('Ended feats writing to DB')
