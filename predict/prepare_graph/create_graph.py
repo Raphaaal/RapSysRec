@@ -24,3 +24,5 @@ if __name__ == '__main__':
         write_triangles_props_year(year, driver)
         write_clustering_coeff_year(year, driver)
         write_label_propagation_year(year, driver)
+
+    graph.close()
