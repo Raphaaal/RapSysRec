@@ -1,6 +1,5 @@
 import io
 import requests
-
 from handlers.csv_handler import truncate_file
 from data_collection.scraping_history.scraping_history_handler import post_treatment_scraping_history
 from handlers.spotify_loader import SpotifyLoader
@@ -15,6 +14,8 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('database')
+
+
 # logger.propagate = False<
 
 
@@ -133,24 +134,73 @@ def write_sample_linked_artist(linked_artists, csv_path):
             )
 
 
+def reset():
+    truncate_file("scraping_history/artists.csv")
+    artist = [
+        {
+            'artist_urn': 'artist_urn',
+            'artist_name': 'artist_name',
+            'artist_popularity': 'artist_popularity'
+        }
+    ]
+    write_artist_to_csv(artist, "scraping_history/artists.csv")
+
+    truncate_file("scraping_history/feats.csv")
+    album = [
+        {
+            "artist_urn": "artist_urn",
+            "artist_name": "artist_name",
+            "track_name": "track_name",
+            "track_id": "track_id",
+            "track_date": "track_date",
+            "featuring_artist_urn": "featuring_artist_urn",
+            "featuring_artist_name": "featuring_artist_name"
+        }
+    ]
+    write_album_to_csv(album, "scraping_history/feats.csv")
+
+    truncate_file("scraping_history/genres.csv")
+    genre = [
+        {
+            'artist_urn': 'artist_urn',
+            'artist_name': 'artist_name',
+            'artist_popularity': 'artist_popularity',
+            'genre': 'genre'
+        }
+    ]
+    write_genre_to_csv(genre, "scraping_history/genres.csv")
+
+    truncate_file("scraping_history/labels.csv")
+    label = {
+        'artist_urn': 'artist_urn',
+        'label': 'label',
+        'date': 'date'
+    }
+    write_label_to_csv(label, "scraping_history/labels.csv")
+
+    for i in range(5):
+        path = "scraping_history/linked_artists_" + str(i) + ".csv"
+        truncate_file(path)
+        linked_artist = [
+            {
+                "urn": "urn"
+            }
+        ]
+
+        write_sample_linked_artist(linked_artist, path)
+
+    logger.info('Reset done.')
+
+
 class Scraping:
 
-    def __init__(self,
-                 # neo4j_user, neo4j_password,
-                 spotify_client_id, spotify_client_secret):
-        # self.neo4j_user = neo4j_user
-        # self.neo4j_password = neo4j_password
+    def __init__(self, spotify_client_id, spotify_client_secret):
         self.spotify_client_id = spotify_client_id
         self.spotify_client_secret = spotify_client_secret
         self.spotify = SpotifyLoader(
             client_id="28d60111ea634effb71f87304bed9285",
             client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
         )
-        # self.graph = Neo4JHandler(
-        #     uri="bolt://localhost:7687",
-        #     user=neo4j_user,
-        #     password=neo4j_password
-        # )
 
     def create_from_album(self, output_label, output_feat, output_linked_artists, album, artist_urn):
         # Featurings
@@ -203,70 +253,6 @@ class Scraping:
         write_artist_to_csv(artist_info, output_artist)
 
         logger.info('Artist %s scraped.', artist['artist_name'])
-
-    def reset(self):
-        truncate_file("scraping_history/artists.csv")
-        artist = [
-            {
-                'artist_urn': 'artist_urn',
-                'artist_name': 'artist_name',
-                'artist_popularity': 'artist_popularity'
-            }
-        ]
-        write_artist_to_csv(artist, "scraping_history/artists.csv")
-
-        truncate_file("scraping_history/feats.csv")
-        album = [
-            {
-                "artist_urn": "artist_urn",
-                "artist_name": "artist_name",
-                "track_name": "track_name",
-                "track_id": "track_id",
-                "track_date": "track_date",
-                "featuring_artist_urn": "featuring_artist_urn",
-                "featuring_artist_name": "featuring_artist_name"
-            }
-        ]
-        write_album_to_csv(album, "scraping_history/feats.csv")
-
-        truncate_file("scraping_history/genres.csv")
-        genre = [
-            {
-                'artist_urn': 'artist_urn',
-                'artist_name': 'artist_name',
-                'artist_popularity': 'artist_popularity',
-                'genre': 'genre'
-            }
-        ]
-        write_genre_to_csv(genre, "scraping_history/genres.csv")
-
-        truncate_file("scraping_history/labels.csv")
-        label = {
-            'artist_urn': 'artist_urn',
-            'label': 'label',
-            'date': 'date'
-        }
-        write_label_to_csv(label, "scraping_history/labels.csv")
-
-        for i in range(5):
-            path = "scraping_history/linked_artists_" + str(i) + ".csv"
-            truncate_file(path)
-            linked_artist = [
-                {
-                    "urn": "urn"
-                }
-            ]
-
-            write_sample_linked_artist(linked_artist, path)
-
-        # self.graph.truncate()
-        # try:
-        #     self.graph.set_constraints()
-        #     logger.info("DB constraints set.")
-        # except neo4j.exceptions.ClientError:
-        #     logger.info("Exception during DB constraints setting.")
-
-        logger.info('Reset done.')
 
     def expand_from_artist(
             self, output_artist, output_feat, output_label, output_genre, output_linked_artists, artist_urn, nb_hops,
@@ -383,39 +369,16 @@ class Scraping:
 
                 post_treatment_scraping_history()  # Remove duplicates
 
-    def delete_duplicate_artist(self):
-        self.graph.delete_duplicate_artists()
-
-    def delete_nodes_without_label(self):
-        self.graph.delete_nodes_without_label()
-
-    def post_treatment_db(self):
-        self.graph.convert_pop_to_int()
-
 
 if __name__ == "__main__":
     db = Scraping(
-        # neo4j_user="neo4j",
-        # neo4j_password="root",
         spotify_client_id="28d60111ea634effb71f87304bed9285",
         spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
     )
 
-    # db.reset()
+    # reset()
 
     # For start
-    # db.expand_from_artist(
-    #     output_artist="scraping_history/artists.csv",
-    #     output_feat="scraping_history/feats.csv",
-    #     output_label="scraping_history/labels.csv",
-    #     output_genre="scraping_history/genres.csv",
-    #     output_linked_artists="scraping_history/linked_artists",
-    #     nb_hops=4,
-    #     artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-    #     min_album_date='2015-01-01'
-    # )
-
-    # For retry
     db.expand_from_artist(
         output_artist="scraping_history/artists.csv",
         output_feat="scraping_history/feats.csv",
@@ -424,9 +387,21 @@ if __name__ == "__main__":
         output_linked_artists="scraping_history/linked_artists",
         nb_hops=4,
         artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-        redo_from_hop=3,
-        last_urn_scraped="7qaqnM2Nc2VlUaT4ivx22o",
         min_album_date='2015-01-01'
     )
 
-    post_treatment_scraping_history()
+    # For retry
+    # db.expand_from_artist(
+    #     output_artist="scraping_history/artists.csv",
+    #     output_feat="scraping_history/feats.csv",
+    #     output_label="scraping_history/labels.csv",
+    #     output_genre="scraping_history/genres.csv",
+    #     output_linked_artists="scraping_history/linked_artists",
+    #     nb_hops=4,
+    #     artist_urn="1afjj7vSBkpIjkiJdSV6bV",
+    #     redo_from_hop=3,
+    #     last_urn_scraped="7qaqnM2Nc2VlUaT4ivx22o",
+    #     min_album_date='2015-01-01'
+    # )
+
+    # post_treatment_scraping_history()
