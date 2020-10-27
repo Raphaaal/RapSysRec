@@ -18,7 +18,7 @@ logger = logging.getLogger('feature_engineering')
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 
-def get_train_set(max_links, batch_size, target_year, driver):
+def get_test_set(max_links, density, batch_size, target_year, driver):
     with driver.session() as session:
 
         # Reset datasets
@@ -39,7 +39,10 @@ def get_train_set(max_links, batch_size, target_year, driver):
             """,
             {'target_year': target_year}
         )
-        train_existing_links = pd.DataFrame([dict(record) for record in result]).sample(max_links)
+        nb_samples = 10
+        if int(max_links*density) > 0:
+            nb_samples = int(max_links*density)
+        train_existing_links = pd.DataFrame([dict(record) for record in result]).sample(nb_samples)
         train_existing_links.to_csv('training_existing_links.csv', index=False)
         logger.info("Training existing links computed.")
 
@@ -75,7 +78,7 @@ def get_train_set(max_links, batch_size, target_year, driver):
         #     )
         #
         #     train_missing_links = pd.DataFrame([dict(record) for record in result]).drop_duplicates()
-        train_missing_links = pd.DataFrame([dict(record) for record in result]).drop_duplicates().sample(max_links)
+        train_missing_links = pd.DataFrame([dict(record) for record in result]).drop_duplicates().sample(int(max_links*(1-density)))
         train_missing_links.to_csv('training_missing_links.csv', mode='a', header=False, index=False)
 
         logger.info("Training missing links computed.")

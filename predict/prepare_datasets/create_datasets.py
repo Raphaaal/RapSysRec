@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     # Build test dataset
     logger.info("Started testing set creation")
-    train_set = get_train_set(max_links=100, batch_size=2, target_year=2020, driver=driver)
+    train_set = get_test_set(max_links=100, density=0.01, batch_size=2, target_year=2020, driver=driver)
     logger.info("Ended testing set creation")
     train_set.to_csv('test_set.csv', index=False)
 
