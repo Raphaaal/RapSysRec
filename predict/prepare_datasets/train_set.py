@@ -32,7 +32,9 @@ def get_train_set(max_links, batch_size, target_year, driver):
         result = session.run(
             """
             MATCH (a:Artist)-[r:FEAT_2020]-(b:Artist)
-            WHERE a <> b
+            WHERE a <> b 
+            // We use the track name to exclude links that will be in the test set
+            AND NOT (r.track_name ENDS WITH "t")
             RETURN DISTINCT id(a) AS node1, id(b) AS node2, 1 AS label
             """,
             {'target_year': target_year}
@@ -46,7 +48,9 @@ def get_train_set(max_links, batch_size, target_year, driver):
         result = session.run(
             """
             MATCH (a:Artist)-[:FEAT*1..3]-(b:Artist)
-            WHERE NOT( (a)-[:FEAT_2020]-(b) ) AND a <> b
+            WHERE NOT( (a)-[r:FEAT_2020]-(b) ) AND a <> b
+            // We use the track name to exclude links that will be in the test set
+            AND NOT (r.track_name ENDS WITH "t")
             RETURN DISTINCT id(a) AS node1, id(b) AS node2, 0 as label
             """
         )

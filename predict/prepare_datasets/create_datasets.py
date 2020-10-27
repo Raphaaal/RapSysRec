@@ -15,6 +15,14 @@ logger = logging.getLogger('prepare_datasets')
 # logger.propagate = False
 
 
+def write_features(path, iteration, driver, dataset):
+    train_set_chunk = engineer_features(driver=driver, dataset=dataset)
+    if iteration == 0:
+        train_set_chunk.to_csv(path, mode='w', header=True, index=False)
+    else:
+        train_set_chunk.to_csv(path, mode='a', header=False, index=False)
+
+
 def write_artist_specific_set(artist_urn, path, driver):
     with driver.session() as session:
 
@@ -43,38 +51,26 @@ if __name__ == '__main__':
     )
     driver = graph.driver
 
-    # Build dataset
+    # Build train dataset
     logger.info("Started training set creation")
-    train_set = get_train_set(max_links=10000, batch_size=2, target_year=2020, driver=driver)
+    train_set = get_train_set(max_links=100, batch_size=2, target_year=2020, driver=driver)
     logger.info("Ended training set creation")
     train_set.to_csv('train_set.csv', index=False)
 
-    # Train / test split
-    train, test = train_test_split(train_set, test_size=0.3)
-    train.to_csv('train_set.csv', index=False)
-    test.to_csv('test_set.csv', index=False)
-
-    # logger.info("Started testing set creation")
-    # test_set = get_test_set(max_links=10000,  batch_size=4, driver=driver)
-    # test_set.to_csv('test_set.csv')
-    # logger.info("Ended testing set creation")
+    # Build test dataset
+    logger.info("Started testing set creation")
+    train_set = get_train_set(max_links=100, batch_size=2, target_year=2020, driver=driver)
+    logger.info("Ended testing set creation")
+    train_set.to_csv('test_set.csv', index=False)
 
     truncate_file('train_set_features.csv')
     for i, chunk in enumerate(pd.read_csv('train_set.csv', chunksize=1)):
-        train_set_chunk = engineer_features(driver, dataset=chunk, train=True)
-        if i == 0:
-            train_set_chunk.to_csv('train_set_features.csv', mode='w', header=True, index=False)
-        else:
-            train_set_chunk.to_csv('train_set_features.csv', mode='a', header=False, index=False)
+        write_features(path='train_set_features.csv', iteration=i, driver=chunk, dataset=chunk)
     logger.info('Train set with features computed')
 
     truncate_file('test_set_features.csv')
     for i, chunk in enumerate(pd.read_csv('test_set.csv', chunksize=1)):
-        test_set_chunk = engineer_features(driver, dataset=chunk, train=False)
-        if i == 0:
-            test_set_chunk.to_csv('test_set_features.csv', mode='w', header=True, index=False)
-        else:
-            test_set_chunk.to_csv('test_set_features.csv', mode='a', header=False, index=False)
+        write_features(path='test_set_features.csv', iteration=i, driver=chunk, dataset=chunk)
     logger.info('Test set with features computed')
 
     # Create full set
@@ -86,13 +82,10 @@ if __name__ == '__main__':
     # All pairs in the 2..4th hop of the considered artist
     # Thus, some pairs may not be sampled and they will not be proposed in the predictions at the end
     truncate_file('artist_set.csv')
-    truncate_file('artist_set_features.csv')
-    write_artist_specific_set(artist_urn='5gs4Sm2WQUkcGeikMcVHbh', path='artist_set.csv', driver=driver)
+    write_artist_specific_set(artist_urn='1afjj7vSBkpIjkiJdSV6bV', path='artist_set.csv', driver=driver)
     logger.info('Artist set computed')
+
+    truncate_file('artist_set_features.csv')
     for i, chunk in enumerate(pd.read_csv('artist_set.csv', chunksize=1)):
-        artist_set_chunk = get_artist_specific_features(artist_df=chunk, min_nb_tn=0.0, driver=driver)
-        if i == 0:
-            artist_set_chunk.to_csv('artist_set_features.csv', mode='w', header=True, index=False)
-        else:
-            artist_set_chunk.to_csv('artist_set_features.csv', mode='a', header=False, index=False)
+        write_features(path='artist_set_features.csv', iteration=i, driver=chunk, dataset=chunk)
     logger.info('Artist set with features computed')
