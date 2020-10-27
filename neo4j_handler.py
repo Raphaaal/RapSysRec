@@ -452,6 +452,11 @@ class Neo4JHandler:
                     MERGE (a)-[r:FEAT_2019 {track_id: row.track_id}]->(b)
                     ON CREATE SET r.track_name = row.track_name, r.track_date = row.track_date
             )
+            
+            FOREACH (ift in CASE WHEN date(row.track_date) >= date("2020-01-01") AND date(row.track_date) <= date("2020-12-01") THEN [1] ELSE [] END |
+                    MERGE (a)-[r:FEAT_2020 {track_id: row.track_id}]->(b)
+                    ON CREATE SET r.track_name = row.track_name, r.track_date = row.track_date
+            )
 
             """,
             csv_path=csv_path
