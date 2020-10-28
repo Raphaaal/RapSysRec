@@ -24,7 +24,7 @@ def write_triangles_props_year(year, driver):
       nodeProjection: 'Artist',
       relationshipProjection: {
         FEAT: {
-          type: '$rel_type',
+          type: $rel_type,
           orientation: 'UNDIRECTED'
         }
       },
