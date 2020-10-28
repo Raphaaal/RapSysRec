@@ -18,8 +18,6 @@ logger = logging.getLogger('spotify_loader')
 def get_track_featurings(track):
     track_featurings = []
     artists_list = track['artists']
-    # TMP for retry
-    # if len(artists_list) > 2:
     if len(artists_list) > 1:
         for artists_comb in itertools.combinations(artists_list, 2):
             featuring = {

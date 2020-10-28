@@ -16,7 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger('database')
 
 
-# logger.propagate = False<
+# logger.propagate = False
 
 
 def add_track_date(featurings, date):
@@ -379,16 +379,16 @@ if __name__ == "__main__":
     # reset()
 
     # For start
-    db.expand_from_artist(
-        output_artist="scraping_history/artists.csv",
-        output_feat="scraping_history/feats.csv",
-        output_label="scraping_history/labels.csv",
-        output_genre="scraping_history/genres.csv",
-        output_linked_artists="scraping_history/linked_artists",
-        nb_hops=4,
-        artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-        min_album_date='2015-01-01'
-    )
+    # db.expand_from_artist(
+    #     output_artist="scraping_history/artists.csv",
+    #     output_feat="scraping_history/feats.csv",
+    #     output_label="scraping_history/labels.csv",
+    #     output_genre="scraping_history/genres.csv",
+    #     output_linked_artists="scraping_history/linked_artists",
+    #     nb_hops=4,
+    #     artist_urn="1afjj7vSBkpIjkiJdSV6bV",
+    #     min_album_date='2015-01-01'
+    # )
 
     # For retry
     # db.expand_from_artist(
@@ -404,4 +404,4 @@ if __name__ == "__main__":
     #     min_album_date='2015-01-01'
     # )
 
-    # post_treatment_scraping_history()
+    post_treatment_scraping_history()
