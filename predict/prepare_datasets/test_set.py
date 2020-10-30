@@ -26,6 +26,9 @@ def get_test_set(max_links, density, batch_size, target_year, driver):
         write_list_to_csv([['node1', 'node2', 'label']], 'training_missing_links.csv')
 
         # Get existing links
+        nb_samples = 10
+        if int(max_links*density) > 0:
+            nb_samples = int(max_links*density)
 
         result = session.run(
             """
@@ -34,13 +37,12 @@ def get_test_set(max_links, density, batch_size, target_year, driver):
             // We use the track name to isolate links that will be in the test set
             AND r.track_name ENDS WITH "t"
             RETURN DISTINCT id(a) AS node1, id(b) AS node2, 1 AS label
+            LIMIT $max_links
             """,
-            {'target_year': target_year}
+            {'target_year': target_year, 'max_links': nb_samples}
         )
-        nb_samples = 10
-        if int(max_links*density) > 0:
-            nb_samples = int(max_links*density)
-        train_existing_links = pd.DataFrame([dict(record) for record in result]).sample(nb_samples)
+        train_existing_links = pd.DataFrame([dict(record) for record in result])
+        # train_existing_links = pd.DataFrame([dict(record) for record in result]).drop_duplicates().sample(nb_samples)
         train_existing_links.to_csv('training_existing_links.csv', index=False)
         logger.info("Training existing links computed.")
 
@@ -48,12 +50,14 @@ def get_test_set(max_links, density, batch_size, target_year, driver):
 
         result = session.run(
             """
-            MATCH (a:Artist)-[:FEAT*1..3]-(b:Artist)
-            WHERE NOT( (a)-[r:FEAT_2020]-(b) ) AND a <> b
+            MATCH (a:Artist)-[r:FEAT]-()-[:FEAT*0..3]-(b:Artist)
+            WHERE NOT( (a)-[:FEAT_2020]-(b) ) AND a <> b
             // We use the track name to isolate links that will be in the test set
             AND r.track_name ENDS WITH "t"
             RETURN DISTINCT id(a) AS node1, id(b) AS node2, 0 as label
-            """
+            LIMIT $max_links
+            """,
+            {'max_links': max_links}
         )
         # all_ids = pd.DataFrame([dict(record)['node'] for record in result]).drop_duplicates()
         # all_ids.to_csv('training_all_ids.csv', index=False)

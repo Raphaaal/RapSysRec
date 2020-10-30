@@ -52,13 +52,13 @@ if __name__ == '__main__':
 
     # Build train dataset
     logger.info("Started training set creation")
-    train_set = get_train_set(max_links=100, batch_size=2, target_year=2020, driver=driver)
+    train_set = get_train_set(max_links=10, batch_size=2, target_year=2020, driver=driver)
     logger.info("Ended training set creation")
     train_set.to_csv('train_set.csv', index=False)
 
     # Build test dataset
     logger.info("Started testing set creation")
-    train_set = get_test_set(max_links=100, density=0.01, batch_size=2, target_year=2020, driver=driver)
+    train_set = get_test_set(max_links=10, density=0.01, batch_size=2, target_year=2020, driver=driver)
     logger.info("Ended testing set creation")
     train_set.to_csv('test_set.csv', index=False)
 
@@ -103,3 +103,5 @@ if __name__ == '__main__':
     for i, chunk in enumerate(pd.read_csv('artist_set.csv', chunksize=1)):
         write_features(path='artist_set_features.csv', iteration=i, driver=chunk, dataset=chunk)
     logger.info('Artist set with features computed')
+
+    graph.close()
