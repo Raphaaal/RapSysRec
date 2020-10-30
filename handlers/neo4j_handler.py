@@ -81,6 +81,12 @@ class Neo4JHandler:
             result = self._create_feats_year_2019_csv(session, path)
             return result
 
+    def create_feats_year_2020(self, csv_path):
+        path = "file:///" + csv_path
+        with self.driver.session() as session:
+            result = self._create_feats_year_2020_csv(session, path)
+            return result
+
     def create_labels(self, csv_path):
         path = "file:///" + csv_path
         with self.driver.session() as session:
@@ -331,6 +337,33 @@ class Neo4JHandler:
             }
         )
         return [row[0] for row in result]
+
+    @staticmethod
+    def _create_feats_year_2020_csv(session, csv_path, year=2020):
+        date_min = str(year) + "-01-01"
+        date_max = str(year) + "-12-11"
+        result = session.run(
+            """
+            USING PERIODIC COMMIT 100
+
+            LOAD CSV WITH HEADERS FROM $csv_path AS row
+            WITH distinct row
+
+            MATCH (a: Artist {urn: row.artist_urn})-[r:FEAT {track_id: row.track_id}]->(b: Artist {urn: row.featuring_artist_urn})
+
+            FOREACH (ift in CASE WHEN date(row.track_date) >= date($date_min) AND date(row.track_date) <= date($date_max) THEN [1] ELSE [] END |
+                    MERGE (a)-[r:FEAT_2020 {track_id: row.track_id}]->(b)
+                    ON CREATE SET r.track_name = row.track_name, r.track_date = row.track_date
+            )
+            """,
+            {
+                "csv_path": csv_path,
+                "date_min": date_min,
+                "date_max": date_max,
+            }
+        )
+        return [row[0] for row in result]
+
     @staticmethod
     # def _create_labels_csv(tx, csv_path):
     # Need open transactions for USING PERIODIC COMMIT to work

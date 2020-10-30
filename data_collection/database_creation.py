@@ -95,7 +95,9 @@ if __name__ == "__main__":
     # feats_years = db.graph.create_feats_year_2019(
     #     csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
     # logger.info('Ended feats (year 2019) writing to DB')
-    #
+    # feats_years = db.graph.create_feats_year_2020(
+    #     csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
+    # logger.info('Ended feats (year 2020) writing to DB')
+
     # db.post_treatment_db()
-    #
     # db.graph.close()
