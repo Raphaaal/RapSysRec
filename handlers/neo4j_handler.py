@@ -211,7 +211,7 @@ class Neo4JHandler:
     @staticmethod
     def _create_feats_year_2015_csv(session, csv_path, year=2015):
         date_min = str(year) + "-01-01"
-        date_max = str(year) + "-12-11"
+        date_max = str(year) + "-12-31"
         result = session.run(
             """
             USING PERIODIC COMMIT 100
@@ -237,7 +237,7 @@ class Neo4JHandler:
     @staticmethod
     def _create_feats_year_2016_csv(session, csv_path, year=2016):
         date_min = str(year) + "-01-01"
-        date_max = str(year) + "-12-11"
+        date_max = str(year) + "-12-31"
         result = session.run(
             """
             USING PERIODIC COMMIT 100
@@ -263,7 +263,7 @@ class Neo4JHandler:
     @staticmethod
     def _create_feats_year_2017_csv(session, csv_path, year=2017):
         date_min = str(year) + "-01-01"
-        date_max = str(year) + "-12-11"
+        date_max = str(year) + "-12-31"
         result = session.run(
             """
             USING PERIODIC COMMIT 100
@@ -289,7 +289,7 @@ class Neo4JHandler:
     @staticmethod
     def _create_feats_year_2018_csv(session, csv_path, year=2018):
         date_min = str(year) + "-01-01"
-        date_max = str(year) + "-12-11"
+        date_max = str(year) + "-12-31"
         result = session.run(
             """
             USING PERIODIC COMMIT 100
@@ -315,7 +315,7 @@ class Neo4JHandler:
     @staticmethod
     def _create_feats_year_2019_csv(session, csv_path, year=2019):
         date_min = str(year) + "-01-01"
-        date_max = str(year) + "-12-11"
+        date_max = str(year) + "-12-31"
         result = session.run(
             """
             USING PERIODIC COMMIT 100
@@ -341,7 +341,7 @@ class Neo4JHandler:
     @staticmethod
     def _create_feats_year_2020_csv(session, csv_path, year=2020):
         date_min = str(year) + "-01-01"
-        date_max = str(year) + "-12-11"
+        date_max = str(year) + "-12-31"
         result = session.run(
             """
             USING PERIODIC COMMIT 100

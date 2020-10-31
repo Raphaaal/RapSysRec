@@ -137,6 +137,7 @@ if __name__ == '__main__':
         "sp_2019", "sl_2019",
 
         # Nb of common labels
+        "nb_common_labels_all",
         "nb_common_labels_2015",
         "nb_common_labels_2016",
         "nb_common_labels_2017",
@@ -144,6 +145,7 @@ if __name__ == '__main__':
         "nb_common_labels_2019",
 
         # Nb of feats
+        "nb_feats_all",
         "nb_feats_2015",
         "nb_feats_2016",
         "nb_feats_2017",
