@@ -30,7 +30,7 @@ def write_artist_specific_set(artist_urn, path, driver):
             """
             MATCH (a:Artist {urn: $artist_urn})
             MATCH (a)-[:FEAT*2..3]-(b)
-            WHERE NOT ((a)-[:FEAT]-(b)) AND a <> b
+            WHERE NOT ((a)-[:FEAT_2020]-(b)) AND a <> b
             RETURN DISTINCT id(a) AS node1, id(b) AS node2, 0 AS label
             """
             , parameters={
@@ -52,35 +52,35 @@ if __name__ == '__main__':
 
     # Build train dataset
     logger.info("Started training set creation")
-    train_set = get_train_set(max_links=10, batch_size=2, target_year=2020, driver=driver)
+    train_set = get_train_set(max_links=10000, batch_size=2, target_year=2020, driver=driver)
     logger.info("Ended training set creation")
     train_set.to_csv('train_set.csv', index=False)
 
     # Build test dataset
     logger.info("Started testing set creation")
-    train_set = get_test_set(max_links=10, density=0.01, batch_size=2, target_year=2020, driver=driver)
+    train_set = get_test_set(max_links=10000, density=0.01, batch_size=2, target_year=2020, driver=driver)
     logger.info("Ended testing set creation")
     train_set.to_csv('test_set.csv', index=False)
 
     # Build validation dataset
     logger.info("Started validation set creation")
-    validation_set = get_test_set(max_links=100, density=0.01, batch_size=2, target_year=2020, driver=driver)
+    validation_set = get_test_set(max_links=10000, density=0.01, batch_size=2, target_year=2020, driver=driver)
     logger.info("Ended validation set creation")
     validation_set.to_csv('validation_set.csv', index=False)
 
     truncate_file('train_set_features.csv')
     for i, chunk in enumerate(pd.read_csv('train_set.csv', chunksize=1)):
-        write_features(path='train_set_features.csv', iteration=i, driver=chunk, dataset=chunk)
+        write_features(path='train_set_features.csv', iteration=i, driver=driver, dataset=chunk)
     logger.info('Train set with features computed')
 
     truncate_file('validation_set_features.csv')
     for i, chunk in enumerate(pd.read_csv('validation_set.csv', chunksize=1)):
-        write_features(path='validation_set_features.csv', iteration=i, driver=chunk, dataset=chunk)
+        write_features(path='validation_set_features.csv', iteration=i, driver=driver, dataset=chunk)
     logger.info('Validation set with features computed')
 
     truncate_file('test_set_features.csv')
     for i, chunk in enumerate(pd.read_csv('test_set.csv', chunksize=1)):
-        write_features(path='test_set_features.csv', iteration=i, driver=chunk, dataset=chunk)
+        write_features(path='test_set_features.csv', iteration=i, driver=driver, dataset=chunk)
     logger.info('Test set with features computed')
 
     # Create full set
@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     truncate_file('artist_set_features.csv')
     for i, chunk in enumerate(pd.read_csv('artist_set.csv', chunksize=1)):
-        write_features(path='artist_set_features.csv', iteration=i, driver=chunk, dataset=chunk)
+        write_features(path='artist_set_features.csv', iteration=i, driver=driver, dataset=chunk)
     logger.info('Artist set with features computed')
 
     graph.close()
