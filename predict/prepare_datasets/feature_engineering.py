@@ -533,10 +533,10 @@ def extract_nb_common_label_all(data, driver_instance):
         same_label = same_label.fillna(0.0)
     else:
         same_label = data[["node1", "node2"]]
-        same_label['nb_common_labels'] = 0.0
+        same_label['nb_common_labels_all'] = 0.0
 
     logger.info('Calculated same label feature.')
-    return pd.merge(data, same_label, on=["node1", "node2"])
+    return pd.merge(data, same_label, how="left", on=["node1", "node2"])
 
 
 def extract_nb_common_label_2015(data, driver_instance, year=2015):
@@ -568,7 +568,7 @@ def extract_nb_common_label_2015(data, driver_instance, year=2015):
         same_label = same_label.fillna(0.0)
     else:
         same_label = data[["node1", "node2"]]
-        same_label['nb_common_labels'] = 0.0
+        same_label['nb_common_labels_2015'] = 0.0
 
     logger.info('Calculated same label feature.')
     return pd.merge(data, same_label, on=["node1", "node2"])
@@ -603,7 +603,7 @@ def extract_nb_common_label_2016(data, driver_instance, year=2016):
         same_label = same_label.fillna(0.0)
     else:
         same_label = data[["node1", "node2"]]
-        same_label['nb_common_labels'] = 0.0
+        same_label['nb_common_labels_2016'] = 0.0
 
     logger.info('Calculated same label feature.')
     return pd.merge(data, same_label, on=["node1", "node2"])
@@ -638,7 +638,7 @@ def extract_nb_common_label_2017(data, driver_instance, year=2017):
         same_label = same_label.fillna(0.0)
     else:
         same_label = data[["node1", "node2"]]
-        same_label['nb_common_labels'] = 0.0
+        same_label['nb_common_labels_2017'] = 0.0
 
     logger.info('Calculated same label feature.')
     return pd.merge(data, same_label, on=["node1", "node2"])
@@ -673,7 +673,7 @@ def extract_nb_common_label_2018(data, driver_instance, year=2018):
         same_label = same_label.fillna(0.0)
     else:
         same_label = data[["node1", "node2"]]
-        same_label['nb_common_labels'] = 0.0
+        same_label['nb_common_labels_2018'] = 0.0
 
     logger.info('Calculated same label feature.')
     return pd.merge(data, same_label, on=["node1", "node2"])
@@ -708,7 +708,7 @@ def extract_nb_common_label_2019(data, driver_instance, year=2019):
         same_label = same_label.fillna(0.0)
     else:
         same_label = data[["node1", "node2"]]
-        same_label['nb_common_labels'] = 0.0
+        same_label['nb_common_labels_2019'] = 0.0
 
     logger.info('Calculated same label feature.')
     return pd.merge(data, same_label, on=["node1", "node2"])
@@ -807,9 +807,9 @@ def extract_nb_feats_all(data, driver_instance):
         nb_yearly_feats = nb_yearly_feats.fillna(0.0)
     else:
         nb_yearly_feats = data[["node1", "node2"]]
-        nb_yearly_feats['nb_common_genres'] = 0.0
+        nb_yearly_feats['nb_feats_all'] = 0.0
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def extract_nb_feats_2015(data, driver_instance, year=2015):
@@ -839,9 +839,9 @@ def extract_nb_feats_2015(data, driver_instance, year=2015):
         nb_yearly_feats = nb_yearly_feats.fillna(0.0)
     else:
         nb_yearly_feats = data[["node1", "node2"]]
-        nb_yearly_feats['nb_common_genres'] = 0.0
+        nb_yearly_feats['nb_feats_2015'] = 0.0
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def extract_nb_feats_2016(data, driver_instance, year=2016):
@@ -871,9 +871,9 @@ def extract_nb_feats_2016(data, driver_instance, year=2016):
         nb_yearly_feats = nb_yearly_feats.fillna(0.0)
     else:
         nb_yearly_feats = data[["node1", "node2"]]
-        nb_yearly_feats['nb_common_genres'] = 0.0
+        nb_yearly_feats['nb_feats_2016'] = 0.0
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def extract_nb_feats_2017(data, driver_instance, year=2017):
@@ -903,9 +903,9 @@ def extract_nb_feats_2017(data, driver_instance, year=2017):
         nb_yearly_feats = nb_yearly_feats.fillna(0.0)
     else:
         nb_yearly_feats = data[["node1", "node2"]]
-        nb_yearly_feats['nb_common_genres'] = 0.0
+        nb_yearly_feats['nb_feats_2017'] = 0.0
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def extract_nb_feats_2018(data, driver_instance, year=2018):
@@ -935,9 +935,9 @@ def extract_nb_feats_2018(data, driver_instance, year=2018):
         nb_yearly_feats = nb_yearly_feats.fillna(0.0)
     else:
         nb_yearly_feats = data[["node1", "node2"]]
-        nb_yearly_feats['nb_common_genres'] = 0.0
+        nb_yearly_feats['nb_feats_2018'] = 0.0
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def extract_nb_feats_2019(data, driver_instance, year=2019):
@@ -967,9 +967,9 @@ def extract_nb_feats_2019(data, driver_instance, year=2019):
         nb_yearly_feats = nb_yearly_feats.fillna(0.0)
     else:
         nb_yearly_feats = data[["node1", "node2"]]
-        nb_yearly_feats['nb_common_genres'] = 0.0
+        nb_yearly_feats['nb_feats_2019'] = 0.0
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def nodes_degrees_year_all(data, driver_instance, year='all'):
@@ -999,7 +999,7 @@ def nodes_degrees_year_all(data, driver_instance, year='all'):
 
     nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def nodes_degrees_year_2015(data, driver_instance, year='2015'):
@@ -1029,7 +1029,7 @@ def nodes_degrees_year_2015(data, driver_instance, year='2015'):
 
     nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def nodes_degrees_year_2016(data, driver_instance, year='2016'):
@@ -1059,7 +1059,7 @@ def nodes_degrees_year_2016(data, driver_instance, year='2016'):
 
     nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def nodes_degrees_year_2017(data, driver_instance, year='2017'):
@@ -1089,7 +1089,7 @@ def nodes_degrees_year_2017(data, driver_instance, year='2017'):
 
     nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def nodes_degrees_year_2018(data, driver_instance, year='2018'):
@@ -1119,7 +1119,7 @@ def nodes_degrees_year_2018(data, driver_instance, year='2018'):
 
     nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def nodes_degrees_year_2019(data, driver_instance, year='2019'):
@@ -1149,13 +1149,10 @@ def nodes_degrees_year_2019(data, driver_instance, year='2019'):
 
     nb_yearly_feats = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
 
-    return nb_yearly_feats
+    return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
 def engineer_features(driver, dataset):
-
-    # TODO: Algo : Intégrer la récence des arcs et le label (de l'album et de l'artiste [label de son dernier album]) encodé avec un poids fort selon l'année
-    # -> Besoin de dupliquer les arcs (car pas de prise en compte du weight dans les algos GDS) ou bien de faire du feature engineering a part (same_label: true / false) ?
 
     # TODO: add feature feat_percentage = nb tracks with ft / nb total tracks from the artist?
     # TODO: add number of tracks per year?

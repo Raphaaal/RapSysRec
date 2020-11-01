@@ -93,6 +93,21 @@ class Neo4JHandler:
             result = self._create_labels_csv(session, path)
             return result
 
+    def get_artists_pdf_from_ids(self, artists_id_list):
+        query = """
+        MATCH (a: Artist)
+        WHERE ID(a) IN $artists_id_list
+        RETURN CASE 
+            WHEN a.name IS NULL THEN 'null'
+            WHEN a.name IS NOT NULL THEN a.name
+            END
+        """
+        params = {"artists_id_list": artists_id_list}
+        with self.driver.session() as session:
+            result = session.run(query, params)
+            artists_names = pd.DataFrame([dict(record) for record in result])
+        return artists_names
+
     @staticmethod
     def _truncate(tx):
         result = tx.run(

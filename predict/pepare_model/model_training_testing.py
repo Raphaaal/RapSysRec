@@ -6,9 +6,10 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import accuracy_score
 import numpy as np
 import logging
-from joblib import dump
+from joblib import dump, load
 from xgboost import XGBClassifier
-
+import scikitplot as skplt
+import matplotlib.pyplot as plt
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
@@ -20,7 +21,6 @@ logger = logging.getLogger('model_training_testing')
 # logger.propagate = False
 
 
-# TODO: print explicability (most important features)
 def feature_importance(columns, classifier):
     features = list(zip(columns, classifier.feature_importances_))
     sorted_features = sorted(features, key=lambda x: x[1] * -1)
@@ -68,7 +68,7 @@ def import_datasets():
     return train_set, test_set, artist_specific, full_set, validation_set
 
 
-def train_classifier(train_set, columns):
+def train_classifier(train_set, columns, path='model.joblib'):
     train_set.drop(columns=["node1", "node2"])
     # classifier = RandomForestClassifier(n_estimators=300, max_depth=10, random_state=0)
     classifier = XGBClassifier(n_estimators=30, max_depth=10, random_state=0)
@@ -76,7 +76,7 @@ def train_classifier(train_set, columns):
     y = train_set["label"]
     classifier.fit(X, y)
     logger.info('Classifier trained')
-    dump(classifier, 'model.joblib')
+    dump(classifier, path)
     logger.info('Classifier saved')
     return classifier
 
@@ -89,6 +89,7 @@ def test_classifier(classifier, test_set, columns):
     print(results)
     feature_expl = feature_importance(columns, classifier)
     print(feature_expl)
+    plot_roc_curve(y_true=y_test.values.to_list(), y_probas=preds)
 
 
 def get_artist_predictions(artist_df, classifier, columns, urn):
@@ -97,6 +98,11 @@ def get_artist_predictions(artist_df, classifier, columns, urn):
     result_artist = get_relevant_predictions(artist_df, concerned_artist_id=concerned_artist_id, graph=graph)
     logger.info('Artist prediction computed')
     return result_artist
+
+
+def plot_roc_curve(y_true, y_probas):
+    skplt.metrics.plot_roc_curve(y_true, y_probas)
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -111,6 +117,8 @@ if __name__ == '__main__':
 
     # Train / test / artist / full sets import
     train_set, test_set, artist_specific, full_set, validation_set = import_datasets()
+    logger.info("Imported datasets.")
+
     columns = [
         # graph features
         "cn_all", "pa_all", "tn_all",
@@ -153,24 +161,38 @@ if __name__ == '__main__':
         "nb_feats_2019",
 
         # Degree of each node in the pair
-        "degree_p1_all", "degree_p1_2015", "degree_p1_2016", "degree_p1_2017", "degree_p1_2018", "degree_p1_2019",
-        "degree_p2_all", "degree_p2_2015", "degree_p2_2016", "degree_p2_2017", "degree_p2_2018", "degree_p2_2019",
+        "degree_p1_all",
+        "degree_p1_2015",
+        "degree_p1_2016",
+        "degree_p1_2017",
+        "degree_p1_2018",
+        "degree_p1_2019",
+        "degree_p2_all",
+        "degree_p2_2015",
+        "degree_p2_2016",
+        "degree_p2_2017",
+        "degree_p2_2018",
+        "degree_p2_2019",
 
-        "nb_common_genres", "squared_popularity_diff"
-    ]  # 79 features
+        "nb_common_genres",
+        "squared_popularity_diff"
+    ]
+    model_path = 'model.joblib'
 
     # Train classifier
-    # TODO: try a different classifier / hyper parameters / columns and COMPARE THEIR AUC
-    classifier = train_classifier(train_set, columns=columns)
+    classifier = train_classifier(train_set, columns=columns, path=model_path)
+    logger.info("Trained classifier.")
 
     # Model analysis
-    # TODO : ROC curve
+    classifier = load(model_path)
+    logger.info("Loaded classifier.")
     test_classifier(classifier, validation_set, columns)
     # test_classifier(classifier, test_set, columns)
+    logger.info("Tested classifier.")
 
     # Model re-training with full set
-    classifier = train_classifier(full_set, columns=columns)
+    # classifier = train_classifier(full_set, columns=columns)
 
     # Artist specific predictions
-    result_artist_specific = get_artist_predictions(artist_specific, classifier, columns, "1afjj7vSBkpIjkiJdSV6bV")
-    result_artist_specific.to_csv("artist_predictions.csv")
+    # result_artist_specific = get_artist_predictions(artist_specific, classifier, columns, "1afjj7vSBkpIjkiJdSV6bV")
+    # result_artist_specific.to_csv("artist_predictions.csv")

@@ -81,23 +81,23 @@ if __name__ == "__main__":
     # )
     # feats = db.graph.create_feats_all(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
     # logger.info('Ended feats (all) writing to DB')
-    # feats_years = db.graph.create_feats_year_2015(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
-    # logger.info('Ended feats (year 2015) writing to DB')
-    # feats_years = db.graph.create_feats_year_2016(
-    #     csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
-    # logger.info('Ended feats (year 2016) writing to DB')
-    # feats_years = db.graph.create_feats_year_2017(
-    #     csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
-    # logger.info('Ended feats (year 2017) writing to DB')
-    # feats_years = db.graph.create_feats_year_2018(
-    #     csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
-    # logger.info('Ended feats (year 2018) writing to DB')
-    # feats_years = db.graph.create_feats_year_2019(
-    #     csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
-    # logger.info('Ended feats (year 2019) writing to DB')
-    # feats_years = db.graph.create_feats_year_2020(
-    #     csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
-    # logger.info('Ended feats (year 2020) writing to DB')
+    feats_years = db.graph.create_feats_year_2015(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
+    logger.info('Ended feats (year 2015) writing to DB')
+    feats_years = db.graph.create_feats_year_2016(
+        csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
+    logger.info('Ended feats (year 2016) writing to DB')
+    feats_years = db.graph.create_feats_year_2017(
+        csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
+    logger.info('Ended feats (year 2017) writing to DB')
+    feats_years = db.graph.create_feats_year_2018(
+        csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
+    logger.info('Ended feats (year 2018) writing to DB')
+    feats_years = db.graph.create_feats_year_2019(
+        csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
+    logger.info('Ended feats (year 2019) writing to DB')
+    feats_years = db.graph.create_feats_year_2020(
+        csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv')
+    logger.info('Ended feats (year 2020) writing to DB')
 
-    # db.post_treatment_db()
-    # db.graph.close()
+    db.post_treatment_db()
+    db.graph.close()
