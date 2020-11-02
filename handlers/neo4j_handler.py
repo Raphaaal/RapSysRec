@@ -108,6 +108,21 @@ class Neo4JHandler:
             artists_names = pd.DataFrame([dict(record) for record in result])
         return artists_names
 
+    def get_node_id_by_urn(self, urn):
+        with self.driver.session() as session:
+            artist_id = session.read_transaction(self._get_node_id_by_urn, urn)
+            return artist_id
+
+    @staticmethod
+    def _get_node_id_by_urn(tx, urn):
+        result = tx.run(
+            "MATCH (a:Artist)  "
+            "WHERE a.urn = $urn "
+            "RETURN DISTINCT id(a) ",
+            urn=urn
+        )
+        return [row[0] for row in result]
+
     @staticmethod
     def _truncate(tx):
         result = tx.run(

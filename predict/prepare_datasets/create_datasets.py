@@ -84,14 +84,14 @@ if __name__ == '__main__':
     # logger.info('Test set with features computed')
 
     # Create full set
-    truncate_file('full_set_features.csv')
-    full_set = pd.read_csv('train_set_features.csv').append(
-        pd.read_csv('test_set_features.csv'), ignore_index=True
-    ).append(
-        pd.read_csv('validation_set_features.csv'), ignore_index=True
-    )
-    full_set.to_csv('full_set_features.csv')
-    logger.info('Full set computed')
+    # truncate_file('full_set_features.csv')
+    # full_set = pd.read_csv('train_set_features.csv').append(
+    #     pd.read_csv('test_set_features.csv'), ignore_index=True
+    # ).append(
+    #     pd.read_csv('validation_set_features.csv'), ignore_index=True
+    # )
+    # full_set.to_csv('full_set_features.csv')
+    # logger.info('Full set computed')
 
     # All pairs in the 2..4th hop of the considered artist
     # Thus, some pairs may not be sampled and they will not be proposed in the predictions at the end
@@ -99,9 +99,9 @@ if __name__ == '__main__':
     # write_artist_specific_set(artist_urn='1afjj7vSBkpIjkiJdSV6bV', path='artist_set.csv', driver=driver)
     # logger.info('Artist set computed')
 
-    truncate_file('artist_set_features.csv')
-    for i, chunk in enumerate(pd.read_csv('artist_set.csv', chunksize=1)):
-        write_features(path='artist_set_features.csv', iteration=i, driver=driver, dataset=chunk)
-    logger.info('Artist set with features computed')
+    # truncate_file('artist_set_features.csv')
+    # for i, chunk in enumerate(pd.read_csv('artist_set.csv', chunksize=1)):
+    #     write_features(path='artist_set_features.csv', iteration=i, driver=driver, dataset=chunk)
+    # logger.info('Artist set with features computed')
 
     graph.close()
