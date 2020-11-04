@@ -20,10 +20,9 @@ def get_test_set(max_links, density, batch_size, target_year, driver):
     with driver.session() as session:
 
         # Reset datasets
-        truncate_file('training_existing_links.csv')
-        truncate_file('training_all_ids.csv')
-        truncate_file('training_missing_links.csv')
-        write_list_to_csv([['node1', 'node2', 'label']], 'training_missing_links.csv')
+        truncate_file('testing_existing_links.csv')
+        truncate_file('testing_missing_links.csv')
+        write_list_to_csv([['node1', 'node2', 'label']], 'testing_missing_links.csv')
 
         # Get existing links
         nb_samples = 10
@@ -36,62 +35,46 @@ def get_test_set(max_links, density, batch_size, target_year, driver):
             WHERE a <> b 
             // We use the track name to isolate links that will be in the test set
             AND r.track_name ENDS WITH "t"
-            RETURN DISTINCT id(a) AS node1, id(b) AS node2, 1 AS label
+            RETURN DISTINCT id(a) AS node1, id(b) AS node2, 1 AS label, rand() as r
+            ORDER BY r ASC
             LIMIT $max_links
             """,
             {'target_year': target_year, 'max_links': nb_samples}
         )
-        train_existing_links = pd.DataFrame([dict(record) for record in result])
-        # train_existing_links = pd.DataFrame([dict(record) for record in result]).drop_duplicates().sample(nb_samples)
-        train_existing_links.to_csv('training_existing_links.csv', index=False)
+        test_existing_links = pd.DataFrame([dict(record) for record in result])
+        test_existing_links.to_csv('testing_existing_links.csv', index=False)
         logger.info("Training existing links computed.")
 
         # Get missing links within 4 hops
+        artists_ids = [x[0] for x in pd.read_csv('training_all_ids.csv').values.tolist()]
 
-        result = session.run(
-            """
-            MATCH (a:Artist)-[r:FEAT]-()-[:FEAT*0..3]-(b:Artist)
-            WHERE NOT( (a)-[:FEAT_2020]-(b) ) AND a <> b
-            // We use the track name to isolate links that will be in the test set
-            AND r.track_name ENDS WITH "t"
-            RETURN DISTINCT id(a) AS node1, id(b) AS node2, 0 as label
-            LIMIT $max_links
-            """,
-            {'max_links': max_links}
-        )
-        # all_ids = pd.DataFrame([dict(record)['node'] for record in result]).drop_duplicates()
-        # all_ids.to_csv('training_all_ids.csv', index=False)
-        # artists_ids = [x[0] for x in pd.read_csv('training_all_ids.csv').values.tolist()]
-        #
-        # # Get pairs of Artist nodes id by checking that link is indeed missing
-        # for artist_id in artists_ids:
-        #     result = session.run(
-        #         """
-        #         MATCH (a:Artist) WHERE id(a) = $artist_urn
-        #         MATCH (a)-[:FEAT*1..4]-(b)
-        #         WHERE NOT ((a)-[r:FEAT]-(b)) AND a <> b
-        #         RETURN DISTINCT id(a) AS node1, id(b) AS node2, 0 AS label
-        #         LIMIT $batch_size
-        #         """,
-        #         {
-        #             "artist_urn": artist_id,
-        #             "batch_size": batch_size
-        #         }
-        #     )
-        #
-        #     train_missing_links = pd.DataFrame([dict(record) for record in result]).drop_duplicates()
-        train_missing_links = pd.DataFrame([dict(record) for record in result]).drop_duplicates().sample(int(max_links*(1-density)))
-        train_missing_links.to_csv('training_missing_links.csv', mode='a', header=False, index=False)
+        # Get pairs of Artist nodes id by checking that link is indeed missing
+        for artist_id in artists_ids:
+            result = session.run(
+                """
+                MATCH (a:Artist)-[r:FEAT]-()-[:FEAT*0..2]-(b:Artist) WHERE id(a) = $artist_urn
+                AND NOT ((a)-[r:FEAT_2020]-(b)) AND a <> b AND (r.track_name ENDS WITH "t")
+                RETURN DISTINCT id(a) AS node1, id(b) AS node2, 0 AS label
+                LIMIT $batch_size
+                """,
+                {
+                    "artist_urn": artist_id,
+                    "batch_size": batch_size
+                }
+            )
 
-        logger.info("Training missing links computed.")
+            test_missing_links = pd.DataFrame([dict(record) for record in result])
+            test_missing_links.to_csv('testing_missing_links.csv', mode='a', header=False, index=False)
+
+        logger.info("Testing missing links computed.")
 
     # Append existing and missing links
-    # train_missing_links = pd.read_csv('training_missing_links.csv').drop_duplicates().sample(max_links)
-    training_df = train_missing_links.append(train_existing_links, ignore_index=True).drop_duplicates()
-    training_df['label'] = training_df['label'].astype('category')
+    test_missing_links = pd.read_csv('testing_missing_links.csv').drop_duplicates().sample(max_links)
+    testing_df = test_missing_links.append(test_existing_links, ignore_index=True).drop_duplicates()
+    testing_df['label'] = testing_df['label'].astype('category')
 
-    count_class_0, count_class_1 = training_df.label.value_counts()
+    count_class_0, count_class_1 = testing_df.label.value_counts()
     print(f"Negative examples: {count_class_0}")
     print(f"Positive examples: {count_class_1}")
 
-    return training_df
+    return testing_df
