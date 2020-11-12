@@ -288,25 +288,6 @@ class Scraping:
                     ], ignore_index=True
                 )['urn'].drop_duplicates(keep=False).reset_index()
                 linked_artists = linked_artists['urn'].values.tolist()
-                # # Multi processing
-                # with ThreadPool(16) as p:
-                #     for _ in tqdm(
-                #             p.istarmap(
-                #                 self.create_from_artist,
-                #                 zip(
-                #                     itertools.repeat(output_artist),
-                #                     itertools.repeat(output_label),
-                #                     itertools.repeat(output_feat),
-                #                     itertools.repeat(output_genre),
-                #                     itertools.repeat(output_linked_artists + "_" + str(i + 1)),
-                #                     linked_artists
-                #                 )
-                #             ),
-                #             total=len(linked_artists)
-                #     ):
-                #         pass
-                #     p.close()
-                #     p.join()
                 for urn in tqdm(linked_artists):
                     loop = True
                     while loop:
@@ -372,8 +353,8 @@ class Scraping:
 
 if __name__ == "__main__":
     db = Scraping(
-        spotify_client_id="28d60111ea634effb71f87304bed9285",
-        spotify_client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
+        spotify_client_id="",
+        spotify_client_secret=""
     )
 
     # reset()
