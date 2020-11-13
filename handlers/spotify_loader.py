@@ -1,10 +1,9 @@
 import itertools
-
+from datetime import datetime
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import logging
 from pprint import pprint
-from multiprocessing.dummy import Pool as ThreadPool
 
 
 logging.basicConfig(
@@ -13,6 +12,20 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('spotify_loader')
 # logger.propagate = False
+
+
+def get_album_release_dt(album):
+    album_release_dt = None
+    try:
+        if len(album['release_date']) == 4:
+            album_release_dt = datetime.strptime(album['release_date'], '%Y')
+        if len(album['release_date']) == 7:
+            album_release_dt = datetime.strptime(album['release_date'], '%Y-%m')
+        if len(album['release_date']) == 10:
+            album_release_dt = datetime.strptime(album['release_date'], '%Y-%m-%d')
+    except ValueError:
+        album_release_dt = None
+    return album_release_dt
 
 
 def get_track_featurings(track):
@@ -83,6 +96,16 @@ class SpotifyLoader:
         if album_featurings:
             return album_featurings
 
+    def get_nb_tracks_year(self, min_date, max_date, urn):
+        albums = self.get_artist_albums(urn)
+        tracks = []
+        for album in albums:
+            album_release_dt = get_album_release_dt(album)
+            if album_release_dt:
+                if datetime.strptime(min_date, '%Y-%m-%d') <= album_release_dt <= datetime.strptime(max_date, '%Y-%m-%d'):
+                    tracks.extend(self.sp.album_tracks(album['id']))
+        return len(tracks)
+
     def get_artist_albums(self, artist_urn):
         albums = []
         albums_list = []
@@ -109,31 +132,8 @@ class SpotifyLoader:
             for album in albums_list:
                 build_album_info(albums, album)
 
-            # Multi-threading pool
-            # pool = ThreadPool(2)
-            # results = pool.starmap(
-            #     build_album_info,
-            #     zip(
-            #         itertools.repeat(albums),
-            #         albums_list
-            #     )
-            # )
-            # pool.close()
-            # pool.join()
-
         for album_type in album_types:
             get_artist_albums_by_type(album_type)
-
-        # Multi-threading pool
-        # pool = ThreadPool(2)
-        # results = pool.starmap(
-        #     get_artist_albums_by_type,
-        #     zip(
-        #         album_types
-        #     )
-        # )
-        # pool.close()
-        # pool.join()
 
         return albums
 

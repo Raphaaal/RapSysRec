@@ -113,6 +113,11 @@ class Neo4JHandler:
             artist_id = session.read_transaction(self._get_node_id_by_urn, urn)
             return artist_id
 
+    def get_urn_by_id(self, node_id):
+        with self.driver.session() as session:
+            artist_urn = session.read_transaction(self._get_urn_by_id, node_id)
+            return artist_urn[0]
+
     @staticmethod
     def _get_node_id_by_urn(tx, urn):
         result = tx.run(
@@ -120,6 +125,16 @@ class Neo4JHandler:
             "WHERE a.urn = $urn "
             "RETURN DISTINCT id(a) ",
             urn=urn
+        )
+        return [row[0] for row in result]
+
+    @staticmethod
+    def _get_urn_by_id(tx, node_id):
+        result = tx.run(
+            "MATCH (a:Artist)  "
+            "WHERE ID(a) = $id "
+            "RETURN DISTINCT a.urn ",
+            id=node_id
         )
         return [row[0] for row in result]
 

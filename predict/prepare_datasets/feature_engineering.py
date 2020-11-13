@@ -1152,10 +1152,24 @@ def nodes_degrees_year_2019(data, driver_instance, year='2019'):
     return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
+def add_nb_tracks(spotify_loader, df_test_under, graph, year):
+    min_date = str(year) + '-' + '01-01'
+    max_date = str(year) + '-' + '12-31'
+    node1_ids = df_test_under['node1'].values.tolist()
+    node2_ids = df_test_under['node2'].values.tolist()
+    for nodes in zip(node1_ids, node2_ids):
+        nb_tracks_node1 = spotify_loader.get_nb_tracks_year(min_date, max_date, graph.get_urn_by_id(nodes[0]))
+        nb_tracks_node2 = spotify_loader.get_nb_tracks_year(min_date, max_date, graph.get_urn_by_id(nodes[1]))
+    df_test_under['nb_tracks_'+str(year)+'_p1'] = nb_tracks_node1
+    df_test_under['nb_tracks_'+str(year)+'_p2'] = nb_tracks_node2
+    return df_test_under
+
+
 def engineer_features(driver, dataset):
 
     # TODO: add feature feat_percentage = nb tracks with ft / nb total tracks from the artist?
     # TODO: add number of tracks per year?
+
 
     df_test_under = dataset
 
