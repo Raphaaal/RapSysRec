@@ -56,7 +56,9 @@ def get_relevant_predictions(pdf, concerned_artist_id, graph):
     pdf_display = pdf[["id", "pred", "label", "pred_proba_0", "pred_proba_1"]]
     ft_artists_names = graph.get_artists_pdf_from_ids(pdf['id'].tolist())
     pdf_display['name'] = np.asarray(ft_artists_names)
-    result = pdf_display[pdf_display['label'] == 0].sort_values(["pred_proba_1"], ascending=[False])
+    # TMP - DEBUG
+    result = pdf_display
+    # result = pdf_display[pdf_display['label'] == 0].sort_values(["pred_proba_1"], ascending=[False])
     return result
 
 
@@ -72,7 +74,7 @@ def import_datasets():
 def train_classifier(train_set, columns, path='model.joblib'):
     train_set.drop(columns=["node1", "node2"])
     # classifier = RandomForestClassifier(n_estimators=300, max_depth=10, random_state=0)
-    classifier = XGBClassifier(n_estimators=300, max_depth=10, random_state=0)
+    classifier = XGBClassifier(n_estimators=300, max_depth=100, random_state=0)
     X = train_set[columns]
     y = train_set["label"]
     classifier.fit(X, y)
@@ -82,14 +84,14 @@ def train_classifier(train_set, columns, path='model.joblib'):
     return classifier
 
 
-def test_classifier(classifier, test_set, columns):
+def test_classifier(classifier, test_set, columns, path):
     test_set.drop(columns=["node1", "node2"])
     preds = classifier.predict(test_set[columns])
     y_test = test_set["label"]
     results = evaluate_model(preds, y_test)
     print(results)
     feature_expl = feature_importance(columns, classifier)
-    print(feature_expl)
+    feature_expl.to_csv(path)
     # plot_roc_curve(y_true=y_test.to_list(), y_probas=preds)
     plot_roc_curve(classifier, test_set[columns], test_set["label"])
     plt.show()
@@ -98,6 +100,7 @@ def test_classifier(classifier, test_set, columns):
 def get_artist_predictions(artist_df, classifier, columns, urn):
     artist_df = make_predictions(artist_df, classifier, columns)
     concerned_artist_id = graph.get_node_id_by_urn(urn=urn)
+    print("Artist's ID: ", concerned_artist_id)
     result_artist = get_relevant_predictions(artist_df, concerned_artist_id=concerned_artist_id, graph=graph)
     logger.info('Artist prediction computed')
     return result_artist
@@ -177,25 +180,32 @@ if __name__ == '__main__':
         "degree_p2_2018",
         "degree_p2_2019",
 
+        # Nb tracks per year
+        'nb_tracks_2015_p1', 'nb_tracks_2015_p2'
+        'nb_tracks_2016_p1', 'nb_tracks_2016_p2'
+        'nb_tracks_2017_p1', 'nb_tracks_2017_p2'
+        'nb_tracks_2018_p1', 'nb_tracks_2018_p2'
+        'nb_tracks_2019_p1', 'nb_tracks_2019_p2'
+
         "nb_common_genres",
         "squared_popularity_diff"
     ]
     model_path = 'model.joblib'
 
     # Train classifier
-    # classifier = train_classifier(train_set, columns=columns, path=model_path)
-    # logger.info("Trained classifier.")
+    classifier = train_classifier(train_set, columns=columns, path=model_path)
+    logger.info("Trained classifier.")
 
     # Model analysis
-    # classifier = load(model_path)
-    # logger.info("Loaded classifier.")
-    # test_classifier(classifier, validation_set, columns)
-    # test_classifier(classifier, test_set, columns)
-    # logger.info("Tested classifier.")
+    classifier = load(model_path)
+    logger.info("Loaded classifier.")
+    test_classifier(classifier, validation_set, columns, 'model_features_importance.csv')
+    # test_classifier(classifier, test_set, columns, 'model_features_importance.csv')
+    logger.info("Tested classifier.")
 
     # Model re-training with full set
-    classifier = train_classifier(full_set, columns=columns)
+    # classifier = train_classifier(full_set, columns=columns)
 
     # Artist specific predictions
-    result_artist_specific = get_artist_predictions(artist_specific, classifier, columns, "1afjj7vSBkpIjkiJdSV6bV")
+    result_artist_specific = get_artist_predictions(artist_specific, classifier, columns, "6qFt3TjvxMt77YGsktWG8Z") # Sofiane
     result_artist_specific.to_csv("artist_predictions.csv")

@@ -56,7 +56,7 @@ if __name__ == "__main__":
     # db.reset()
 
     # logger.info('Starting artists writing to DB')
-    # artists = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/artists.csv')
+    artists = db.graph.create_artists('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/artists.csv')
     # logger.info('Ended artists writing to DB')
 
     # logger.info('Starting genres writing to DB')

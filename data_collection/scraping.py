@@ -104,7 +104,13 @@ def write_artist_to_csv(artists, csv_path):
                 [
                     artist["artist_urn"],
                     artist["artist_name"],
-                    artist["artist_popularity"]
+                    artist["artist_popularity"],
+                    artist["nb_tracks_2015"],
+                    artist["nb_tracks_2016"],
+                    artist["nb_tracks_2017"],
+                    artist["nb_tracks_2018"],
+                    artist["nb_tracks_2019"],
+                    artist["nb_tracks_2020"],
                 ]
             )
 
@@ -140,7 +146,13 @@ def reset():
         {
             'artist_urn': 'artist_urn',
             'artist_name': 'artist_name',
-            'artist_popularity': 'artist_popularity'
+            'artist_popularity': 'artist_popularity',
+            'nb_tracks_2015': 'nb_track_2015',
+            'nb_tracks_2016': 'nb_track_2016',
+            'nb_tracks_2017': 'nb_track_2017',
+            'nb_tracks_2018': 'nb_track_2018',
+            'nb_tracks_2019': 'nb_track_2019',
+            'nb_tracks_2020': 'nb_track_2020',
         }
     ]
     write_artist_to_csv(artist, "scraping_history/artists.csv")
@@ -198,8 +210,8 @@ class Scraping:
         self.spotify_client_id = spotify_client_id
         self.spotify_client_secret = spotify_client_secret
         self.spotify = SpotifyLoader(
-            client_id="28d60111ea634effb71f87304bed9285",
-            client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
+            client_id=self.spotify_client_id,
+            client_secret=self.spotify_client_secret
         )
 
     def create_from_album(self, output_label, output_feat, output_linked_artists, album, artist_urn):
@@ -221,13 +233,6 @@ class Scraping:
 
     def create_from_artist(self, output_artist, output_label, output_feat, output_genre, output_linked_artists,
                            artist_urn, min_album_date):
-        # Albums featuring info
-        albums = self.spotify.get_artist_albums(artist_urn)
-        for album in albums:
-            album_release_dt = get_album_release_dt(album)
-            if album_release_dt:
-                if album_release_dt > datetime.strptime(min_album_date, '%Y-%m-%d'):
-                    self.create_from_album(output_label, output_feat, output_linked_artists, album, artist_urn)
 
         # Genres
         artist = self.spotify.get_artist_info(self.spotify.get_artist_by_id(artist_urn))
@@ -243,15 +248,34 @@ class Scraping:
             write_genre_to_csv(genres, output_genre)
 
         # Artist
-        artist_info = [
-            {
-                'artist_urn': artist_urn,
-                'artist_name': artist['artist_name'],
-                'artist_popularity': artist['artist_popularity'],
-            }
-        ]
-        write_artist_to_csv(artist_info, output_artist)
+        artist_info = {
+            'artist_urn': artist_urn,
+            'artist_name': artist['artist_name'],
+            'artist_popularity': artist['artist_popularity'],
+            'nb_tracks_2015': 0,
+            'nb_tracks_2016': 0,
+            'nb_tracks_2017': 0,
+            'nb_tracks_2018': 0,
+            'nb_tracks_2019': 0,
+            'nb_tracks_2020': 0,
+        }
 
+        # Albums info
+        albums = self.spotify.get_artist_albums(artist_urn)
+        for album in albums:
+            album_release_dt = get_album_release_dt(album)
+            if album_release_dt:
+                if album_release_dt > datetime.strptime(min_album_date, '%Y-%m-%d'):
+                    # Scrap featurings
+                    self.create_from_album(output_label, output_feat, output_linked_artists, album, artist_urn)
+                    # Count nb of tracks per year
+                    for year in (2015, 2021):
+                        min_date = str(year) + '-' + '01-01'
+                        max_date = str(year) + '-' + '12-31'
+                        if datetime.strptime(min_date, '%Y-%m-%d') <= album_release_dt <= datetime.strptime(max_date, '%Y-%m-%d'):
+                            artist_info['nb_tracks_'+str(year)] += len(self.spotify.sp.album_tracks(album['id']))
+
+        write_artist_to_csv([artist_info], output_artist)
         logger.info('Artist %s scraped.', artist['artist_name'])
 
     def expand_from_artist(
@@ -353,23 +377,23 @@ class Scraping:
 
 if __name__ == "__main__":
     db = Scraping(
-        spotify_client_id="",
-        spotify_client_secret=""
+        spotify_client_id="28d60111ea634effb71f87304bed9285",
+        spotify_client_secret="4461b49321914c59b136ecd52090dcd2"
     )
 
-    # reset()
+    reset()
 
     # For start
-    # db.expand_from_artist(
-    #     output_artist="scraping_history/artists.csv",
-    #     output_feat="scraping_history/feats.csv",
-    #     output_label="scraping_history/labels.csv",
-    #     output_genre="scraping_history/genres.csv",
-    #     output_linked_artists="scraping_history/linked_artists",
-    #     nb_hops=4,
-    #     artist_urn="1afjj7vSBkpIjkiJdSV6bV",
-    #     min_album_date='2015-01-01'
-    # )
+    db.expand_from_artist(
+        output_artist="scraping_history/artists.csv",
+        output_feat="scraping_history/feats.csv",
+        output_label="scraping_history/labels.csv",
+        output_genre="scraping_history/genres.csv",
+        output_linked_artists="scraping_history/linked_artists",
+        nb_hops=2,
+        artist_urn="6qFt3TjvxMt77YGsktWG8Z",
+        min_album_date='2015-01-01'
+    )
 
     # For retry
     # db.expand_from_artist(
@@ -379,7 +403,7 @@ if __name__ == "__main__":
     #     output_genre="scraping_history/genres.csv",
     #     output_linked_artists="scraping_history/linked_artists",
     #     nb_hops=4,
-    #     artist_urn="1afjj7vSBkpIjkiJdSV6bV",
+    #     artist_urn="6qFt3TjvxMt77YGsktWG8Z",
     #     redo_from_hop=3,
     #     last_urn_scraped="7qaqnM2Nc2VlUaT4ivx22o",
     #     min_album_date='2015-01-01'
