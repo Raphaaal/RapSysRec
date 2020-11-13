@@ -222,8 +222,8 @@ class Neo4JHandler:
             WITH distinct row
 
             MERGE (a: Artist {urn: row.artist_urn})
-            ON CREATE SET a.name = row.artist_name, a.popularity = row.artist_popularity
-            ON MATCH SET a.name = row.artist_name, a.popularity = row.artist_popularity
+            ON CREATE SET a.name = row.artist_name, a.popularity = row.artist_popularity, a.nb_tracks_2015 = row.nb_tracks_2015, a.nb_tracks_2016 = row.nb_tracks_2016, a.nb_tracks_2017 = row.nb_tracks_2017, a.nb_tracks_2018 = row.nb_tracks_2018, a.nb_tracks_2019 = row.nb_tracks_2019, a.nb_tracks_2020 = row.nb_tracks_2020
+            ON MATCH SET a.name = row.artist_name, a.popularity = row.artist_popularity, a.nb_tracks_2015 = row.nb_tracks_2015, a.nb_tracks_2016 = row.nb_tracks_2016, a.nb_tracks_2017 = row.nb_tracks_2017, a.nb_tracks_2018 = row.nb_tracks_2018, a.nb_tracks_2019 = row.nb_tracks_2019, a.nb_tracks_2020 = row.nb_tracks_2020
             """,
             csv_path=csv_path
         )
