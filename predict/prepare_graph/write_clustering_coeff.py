@@ -1,37 +1,4 @@
 def write_clustering_coeff(driver):
-
-    query = """
-    CALL gds.localClusteringCoefficient.write({
-      nodeProjection: 'Artist',
-      relationshipProjection: {
-        FEAT_EARLY: {
-          type: 'FEAT_EARLY',
-          orientation: 'UNDIRECTED'
-        }
-      },
-      writeProperty: 'coefficientTrain'
-    });
-    """
-
-    with driver.session() as session:
-        result = session.run(query)
-
-    query = """
-    CALL gds.localClusteringCoefficient.write({
-      nodeProjection: 'Artist',
-      relationshipProjection: {
-        FEAT_LATE: {
-          type: 'FEAT_LATE',
-          orientation: 'UNDIRECTED'
-        }
-      },
-      writeProperty: 'coefficientTest'
-    });
-    """
-
-    with driver.session() as session:
-        result = session.run(query)
-
     query = """
     CALL gds.localClusteringCoefficient.write({
       nodeProjection: 'Artist',
@@ -41,9 +8,30 @@ def write_clustering_coeff(driver):
           orientation: 'UNDIRECTED'
         }
       },
-      writeProperty: 'coefficient'
+      writeProperty: 'coefficient_all'
     });
     """
 
     with driver.session() as session:
         result = session.run(query)
+
+
+def write_clustering_coeff_year(year, driver):
+    rel_type = 'FEAT_' + str(year)
+    property_name = 'coefficient_' + str(year)
+    query = """
+    CALL gds.localClusteringCoefficient.write({
+      nodeProjection: 'Artist',
+      relationshipProjection: {
+        FEAT: {
+          type: $rel_type,
+          orientation: 'UNDIRECTED'
+        }
+      },
+      writeProperty: $property_name
+    });
+    """
+    params = {"rel_type": rel_type, "property_name": property_name}
+
+    with driver.session() as session:
+        result = session.run(query, params)
