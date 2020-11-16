@@ -8,6 +8,7 @@ import csv
 import pandas as pd
 from tqdm import tqdm
 from datetime import datetime
+from pprint import pprint
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -147,12 +148,12 @@ def reset():
             'artist_urn': 'artist_urn',
             'artist_name': 'artist_name',
             'artist_popularity': 'artist_popularity',
-            'nb_tracks_2015': 'nb_track_2015',
-            'nb_tracks_2016': 'nb_track_2016',
-            'nb_tracks_2017': 'nb_track_2017',
-            'nb_tracks_2018': 'nb_track_2018',
-            'nb_tracks_2019': 'nb_track_2019',
-            'nb_tracks_2020': 'nb_track_2020',
+            'nb_tracks_2015': 'nb_tracks_2015',
+            'nb_tracks_2016': 'nb_tracks_2016',
+            'nb_tracks_2017': 'nb_tracks_2017',
+            'nb_tracks_2018': 'nb_tracks_2018',
+            'nb_tracks_2019': 'nb_tracks_2019',
+            'nb_tracks_2020': 'nb_tracks_2020',
         }
     ]
     write_artist_to_csv(artist, "scraping_history/artists.csv")
@@ -269,11 +270,11 @@ class Scraping:
                     # Scrap featurings
                     self.create_from_album(output_label, output_feat, output_linked_artists, album, artist_urn)
                     # Count nb of tracks per year
-                    for year in (2015, 2021):
+                    for year in range(2015, 2021):
                         min_date = str(year) + '-' + '01-01'
                         max_date = str(year) + '-' + '12-31'
-                        if datetime.strptime(min_date, '%Y-%m-%d') <= album_release_dt <= datetime.strptime(max_date, '%Y-%m-%d'):
-                            artist_info['nb_tracks_'+str(year)] += len(self.spotify.sp.album_tracks(album['id']))
+                        if datetime.strptime(min_date, '%Y-%m-%d') <= album_release_dt <= datetime.strptime(max_date, '%Y-%m-%d') and album['type'] in ['single', 'album']:
+                            artist_info['nb_tracks_'+str(year)] += len(self.spotify.sp.album_tracks(album['id'])['items'])
 
         write_artist_to_csv([artist_info], output_artist)
         logger.info('Artist %s scraped.', artist['artist_name'])
@@ -390,7 +391,7 @@ if __name__ == "__main__":
         output_label="scraping_history/labels.csv",
         output_genre="scraping_history/genres.csv",
         output_linked_artists="scraping_history/linked_artists",
-        nb_hops=2,
+        nb_hops=3,
         artist_urn="6qFt3TjvxMt77YGsktWG8Z",
         min_album_date='2015-01-01'
     )

@@ -111,26 +111,26 @@ class SpotifyLoader:
         albums_list = []
         album_types = ['album', 'single', 'appears_on']
 
+        def build_album_info(final_list, album, album_type):
+            album_info = {
+                'release_date': album['release_date'],
+                'id': album['id'],
+                'name': album['name'],
+                'label': self.sp.album(album['id'])['label'],
+                'type': album_type
+            }
+            if album_info:
+                final_list.append(album_info)
+            return album_info
+
         def get_artist_albums_by_type(alb_type):
             results = self.sp.artist_albums(artist_urn, album_type=alb_type)
             albums_list.extend(results['items'])
             while results['next']:
                 results = self.sp.next(results)
                 albums_list.extend(results['items'])
-
-            def build_album_info(final_list, album):
-                album_info = {
-                    'release_date': album['release_date'],
-                    'id': album['id'],
-                    'name': album['name'],
-                    'label': self.sp.album(album['id'])['label']
-                }
-                if album_info:
-                    final_list.append(album_info)
-                return album_info
-
             for album in albums_list:
-                build_album_info(albums, album)
+                build_album_info(albums, album, album_type)
 
         for album_type in album_types:
             get_artist_albums_by_type(album_type)
