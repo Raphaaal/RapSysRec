@@ -146,8 +146,8 @@ class SpotifyLoader:
 
 if __name__ == '__main__':
     spotify = SpotifyLoader(
-        client_id="28d60111ea634effb71f87304bed9285",
-        client_secret="77f974dfa7c2412196a9e1b13e4f5e9e"
+        client_id="",
+        client_secret=""
     )
     artist = {'id': "2eh8cEKZk4VeruUrGq748D" }
     test = spotify.get_artist_albums(artist)

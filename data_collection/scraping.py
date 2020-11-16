@@ -378,23 +378,23 @@ class Scraping:
 
 if __name__ == "__main__":
     db = Scraping(
-        spotify_client_id="28d60111ea634effb71f87304bed9285",
-        spotify_client_secret="4461b49321914c59b136ecd52090dcd2"
+        spotify_client_id="",
+        spotify_client_secret=""
     )
 
-    reset()
+    # reset()
 
     # For start
-    db.expand_from_artist(
-        output_artist="scraping_history/artists.csv",
-        output_feat="scraping_history/feats.csv",
-        output_label="scraping_history/labels.csv",
-        output_genre="scraping_history/genres.csv",
-        output_linked_artists="scraping_history/linked_artists",
-        nb_hops=3,
-        artist_urn="6qFt3TjvxMt77YGsktWG8Z",
-        min_album_date='2015-01-01'
-    )
+    # db.expand_from_artist(
+    #     output_artist="scraping_history/artists.csv",
+    #     output_feat="scraping_history/feats.csv",
+    #     output_label="scraping_history/labels.csv",
+    #     output_genre="scraping_history/genres.csv",
+    #     output_linked_artists="scraping_history/linked_artists",
+    #     nb_hops=3,
+    #     artist_urn="6qFt3TjvxMt77YGsktWG8Z",
+    #     min_album_date='2015-01-01'
+    # )
 
     # For retry
     # db.expand_from_artist(
@@ -403,7 +403,7 @@ if __name__ == "__main__":
     #     output_label="scraping_history/labels.csv",
     #     output_genre="scraping_history/genres.csv",
     #     output_linked_artists="scraping_history/linked_artists",
-    #     nb_hops=4,
+    #     nb_hops=3,
     #     artist_urn="6qFt3TjvxMt77YGsktWG8Z",
     #     redo_from_hop=3,
     #     last_urn_scraped="7qaqnM2Nc2VlUaT4ivx22o",
