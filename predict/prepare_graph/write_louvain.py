@@ -12,8 +12,9 @@ def write_louvain(driver):
       includeIntermediateCommunities: true
     })
     YIELD nodeId, communityId, intermediateCommunityIds
-    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
-    SET node.louvain_all = smallestCommunity;
+    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity, communityId
+    SET node.louvain_all = smallestCommunity
+    SET node.louvain_first_all = communityId;
     """
 
     with driver.session() as session:
@@ -34,8 +35,9 @@ def write_louvain_2015(driver, year=2015):
       includeIntermediateCommunities: true
     })
     YIELD nodeId, communityId, intermediateCommunityIds
-    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
-    SET node.louvain_2015 = smallestCommunity;
+    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity, communityId
+    SET node.louvain_2015 = smallestCommunity
+    SET node.louvain_first_2015 = communityId;
     """
     params = {"rel_type": rel_type}
 
@@ -57,8 +59,9 @@ def write_louvain_2016(driver, year=2016):
       includeIntermediateCommunities: true
     })
     YIELD nodeId, communityId, intermediateCommunityIds
-    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
-    SET node.louvain_2016 = smallestCommunity;
+    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity, communityId
+    SET node.louvain_2016 = smallestCommunity
+    SET node.louvain_first_2016 = communityId;
     """
     params = {"rel_type": rel_type}
 
@@ -80,8 +83,9 @@ def write_louvain_2017(driver, year=2017):
       includeIntermediateCommunities: true
     })
     YIELD nodeId, communityId, intermediateCommunityIds
-    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
-    SET node.louvain_2017 = smallestCommunity;
+    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity, communityId
+    SET node.louvain_2017 = smallestCommunity
+    SET node.louvain_first_2017 = communityId;
     """
     params = {"rel_type": rel_type}
 
@@ -103,8 +107,9 @@ def write_louvain_2018(driver, year=2018):
       includeIntermediateCommunities: true
     })
     YIELD nodeId, communityId, intermediateCommunityIds
-    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
-    SET node.louvain_2018 = smallestCommunity;
+    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity, communityId
+    SET node.louvain_2018 = smallestCommunity
+    SET node.louvain_first_2018 = communityId;
     """
     params = {"rel_type": rel_type}
 
@@ -126,8 +131,9 @@ def write_louvain_2019(driver, year=2019):
       includeIntermediateCommunities: true
     })
     YIELD nodeId, communityId, intermediateCommunityIds
-    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity
-    SET node.louvain_2019 = smallestCommunity;
+    WITH gds.util.asNode(nodeId) AS node, intermediateCommunityIds[0] AS smallestCommunity, communityId
+    SET node.louvain_2019 = smallestCommunity
+    SET node.louvain_first_2019 = communityId;
     """
     params = {"rel_type": rel_type}
 
