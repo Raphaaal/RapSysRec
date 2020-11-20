@@ -235,10 +235,10 @@ class Neo4JHandler:
     def _create_feats_all_csv(session, csv_path):
         result = session.run(
             """
-            USING PERIODIC COMMIT 1000
+            USING PERIODIC COMMIT 500
             
             LOAD CSV WITH HEADERS FROM $csv_path AS row
-            WITH distinct row
+            //WITH distinct row
             
             MERGE (a: Artist {urn: row.artist_urn})
             ON CREATE SET a.name = row.artist_name
@@ -259,10 +259,10 @@ class Neo4JHandler:
         date_max = str(year) + "-12-31"
         result = session.run(
             """
-            USING PERIODIC COMMIT 100
+            USING PERIODIC COMMIT 500
 
             LOAD CSV WITH HEADERS FROM $csv_path AS row
-            WITH distinct row
+            //WITH distinct row
 
             MATCH (a: Artist {urn: row.artist_urn})-[r:FEAT {track_id: row.track_id}]->(b: Artist {urn: row.featuring_artist_urn})
 
@@ -285,10 +285,10 @@ class Neo4JHandler:
         date_max = str(year) + "-12-31"
         result = session.run(
             """
-            USING PERIODIC COMMIT 100
+            USING PERIODIC COMMIT 500
 
             LOAD CSV WITH HEADERS FROM $csv_path AS row
-            WITH distinct row
+            //WITH distinct row
 
             MATCH (a: Artist {urn: row.artist_urn})-[r:FEAT {track_id: row.track_id}]->(b: Artist {urn: row.featuring_artist_urn})
 
@@ -311,10 +311,10 @@ class Neo4JHandler:
         date_max = str(year) + "-12-31"
         result = session.run(
             """
-            USING PERIODIC COMMIT 100
+            USING PERIODIC COMMIT 500
 
             LOAD CSV WITH HEADERS FROM $csv_path AS row
-            WITH distinct row
+            //WITH distinct row
 
             MATCH (a: Artist {urn: row.artist_urn})-[r:FEAT {track_id: row.track_id}]->(b: Artist {urn: row.featuring_artist_urn})
 
@@ -337,10 +337,10 @@ class Neo4JHandler:
         date_max = str(year) + "-12-31"
         result = session.run(
             """
-            USING PERIODIC COMMIT 100
+            USING PERIODIC COMMIT 500
 
             LOAD CSV WITH HEADERS FROM $csv_path AS row
-            WITH distinct row
+            //WITH distinct row
 
             MATCH (a: Artist {urn: row.artist_urn})-[r:FEAT {track_id: row.track_id}]->(b: Artist {urn: row.featuring_artist_urn})
 
@@ -363,10 +363,10 @@ class Neo4JHandler:
         date_max = str(year) + "-12-31"
         result = session.run(
             """
-            USING PERIODIC COMMIT 100
+            USING PERIODIC COMMIT 500
 
             LOAD CSV WITH HEADERS FROM $csv_path AS row
-            WITH distinct row
+            //WITH distinct row
 
             MATCH (a: Artist {urn: row.artist_urn})-[r:FEAT {track_id: row.track_id}]->(b: Artist {urn: row.featuring_artist_urn})
 
@@ -389,10 +389,10 @@ class Neo4JHandler:
         date_max = str(year) + "-12-31"
         result = session.run(
             """
-            USING PERIODIC COMMIT 100
+            USING PERIODIC COMMIT 500
 
             LOAD CSV WITH HEADERS FROM $csv_path AS row
-            WITH distinct row
+            //WITH distinct row
 
             MATCH (a: Artist {urn: row.artist_urn})-[r:FEAT {track_id: row.track_id}]->(b: Artist {urn: row.featuring_artist_urn})
 

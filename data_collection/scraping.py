@@ -224,6 +224,7 @@ class Scraping:
             write_linked_artists_to_csv(featurings, artist_urn, output_linked_artists + ".csv")
 
         # Label
+        # TODO: create label only for 'single' or 'album' types (not for 'appears in')
         if album['label']:
             label = {
                 'artist_urn': artist_urn,
@@ -270,6 +271,7 @@ class Scraping:
                     # Scrap featurings
                     self.create_from_album(output_label, output_feat, output_linked_artists, album, artist_urn)
                     # Count nb of tracks per year
+                    # TODO: check!
                     for year in range(2015, 2021):
                         min_date = str(year) + '-' + '01-01'
                         max_date = str(year) + '-' + '12-31'
@@ -301,7 +303,19 @@ class Scraping:
                 logger.info("=              Writing next artists in linked_artists_%s                  =", str(i + 1))
                 logger.info("==========================================================================")
                 # Isolate artists already scraped
-                scraped_artists = pd.read_csv(output_artist, index_col=False)['artist_urn'].drop_duplicates()
+                li = []
+                all_files = [output_linked_artists + "_" + str(i) + ".csv" for i in range(i)]
+                for filename in all_files:
+                    df = pd.read_csv(filename, index_col=None, header=0)
+                    li.append(df)
+                scraped_artists = pd.concat(li, axis=0, ignore_index=True)['urn'].drop_duplicates()
+                scraped_artists = pd.concat(
+                    [
+                        scraped_artists,
+                        pd.read_csv(output_artist, index_col=False)['artist_urn']
+                    ],
+                    axis=0, ignore_index=True
+                )
                 scraped_artists.columns = ['urn']
                 # Get artists to scrap (excluding artists already scraped)
                 last_linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
@@ -341,7 +355,19 @@ class Scraping:
                 logger.info("=              Writing next artists in linked_artists_%s                  =", str(i + 1))
                 logger.info("==========================================================================")
                 # Isolate artists already scraped
-                scraped_artists = pd.read_csv(output_artist, index_col=False)['artist_urn'].drop_duplicates()
+                li = []
+                all_files = [output_linked_artists + "_" + str(i) + ".csv" for i in range(i)]
+                for filename in all_files:
+                    df = pd.read_csv(filename, index_col=None, header=0)
+                    li.append(df)
+                scraped_artists = pd.concat(li, axis=0, ignore_index=True)['urn'].drop_duplicates()
+                scraped_artists = pd.concat(
+                    [
+                        scraped_artists,
+                        pd.read_csv(output_artist, index_col=False)['artist_urn']
+                    ],
+                    axis=0, ignore_index=True
+                )
                 scraped_artists.columns = ['urn']
                 # Get artists to scrap (excluding artists already scraped)
                 last_linked_artists = pd.read_csv(output_linked_artists + "_" + str(i) + ".csv").drop_duplicates()
@@ -378,8 +404,8 @@ class Scraping:
 
 if __name__ == "__main__":
     db = Scraping(
-        spotify_client_id="",
-        spotify_client_secret=""
+        spotify_client_id="28d60111ea634effb71f87304bed9285",
+        spotify_client_secret="4461b49321914c59b136ecd52090dcd2"
     )
 
     # reset()
@@ -397,17 +423,17 @@ if __name__ == "__main__":
     # )
 
     # For retry
-    # db.expand_from_artist(
-    #     output_artist="scraping_history/artists.csv",
-    #     output_feat="scraping_history/feats.csv",
-    #     output_label="scraping_history/labels.csv",
-    #     output_genre="scraping_history/genres.csv",
-    #     output_linked_artists="scraping_history/linked_artists",
-    #     nb_hops=3,
-    #     artist_urn="6qFt3TjvxMt77YGsktWG8Z",
-    #     redo_from_hop=3,
-    #     last_urn_scraped="7qaqnM2Nc2VlUaT4ivx22o",
-    #     min_album_date='2015-01-01'
-    # )
+    db.expand_from_artist(
+        output_artist="scraping_history/artists.csv",
+        output_feat="scraping_history/feats.csv",
+        output_label="scraping_history/labels.csv",
+        output_genre="scraping_history/genres.csv",
+        output_linked_artists="scraping_history/linked_artists",
+        nb_hops=3,
+        artist_urn="6qFt3TjvxMt77YGsktWG8Z",
+        redo_from_hop=2,
+        last_urn_scraped="0dFKe6BmcXTSwyC2NMWK6I",
+        min_album_date='2015-01-01'
+    )
 
     post_treatment_scraping_history()
