@@ -109,6 +109,7 @@ class SpotifyLoader:
     def get_artist_albums(self, artist_urn):
         albums = []
         albums_list = []
+        # TODO: try without 'appears_on' to avoid duplicate tracks appearing under various urn in various compilations, etc.
         album_types = ['album', 'single', 'appears_on']
 
         def build_album_info(final_list, album, album_type):
