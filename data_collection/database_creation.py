@@ -43,6 +43,7 @@ class Database:
 
     def post_treatment_db(self):
         self.graph.delete_duplicate_artists()
+        self.graph.delete_duplicate_tracks_name()
         self.delete_nodes_without_label()
         self.graph.convert_pop_to_int()
 
@@ -74,25 +75,25 @@ if __name__ == "__main__":
     # db.post_treatment_db()
     # logger.info("Removed duplicates in DB")
 
-    logger.info('Starting NaN removal from feats CSV.')
-    remove_nan(
-        'C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv',
-        ['artist_urn', 'artist_name', 'track_name', 'track_id', 'track_date', 'featuring_artist_urn', 'featuring_artist_name']
-    )
+    # logger.info('Starting NaN removal from feats CSV.')
+    # remove_nan(
+    #     'C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats.csv',
+    #     ['artist_urn', 'artist_name', 'track_name', 'track_id', 'track_date', 'featuring_artist_urn', 'featuring_artist_name']
+    # )
 
     # Write in chunks to Neo4J (because of overloading of LOAD CSV method)
-    logger.info('Starting feats (all) writing to DB')
-    for i, chunk in enumerate(pd.read_csv('scraping_history/feats.csv', chunksize=1000)):
-        logger.info('Starting feats writing to DB - chunk ' + str(i))
-        chunk.to_csv('scraping_history/feats_chunk.csv', index=False)
-        feats = db.graph.create_feats_all(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
-        feats_years = db.graph.create_feats_year_2015(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
-        feats_years = db.graph.create_feats_year_2016(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
-        feats_years = db.graph.create_feats_year_2017(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
-        feats_years = db.graph.create_feats_year_2018(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
-        feats_years = db.graph.create_feats_year_2019(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
-        feats_years = db.graph.create_feats_year_2020(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
-    logger.info('Ended feats (all) writing to DB')
+    # logger.info('Starting feats (all) writing to DB')
+    # for i, chunk in enumerate(pd.read_csv('scraping_history/feats.csv', chunksize=1000)):
+    #     logger.info('Starting feats writing to DB - chunk ' + str(i))
+    #     chunk.to_csv('scraping_history/feats_chunk.csv', index=False)
+    #     feats = db.graph.create_feats_all(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
+    #     feats_years = db.graph.create_feats_year_2015(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
+    #     feats_years = db.graph.create_feats_year_2016(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
+    #     feats_years = db.graph.create_feats_year_2017(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
+    #     feats_years = db.graph.create_feats_year_2018(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
+    #     feats_years = db.graph.create_feats_year_2019(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
+    #     feats_years = db.graph.create_feats_year_2020(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
+    # logger.info('Ended feats (all) writing to DB')
 
     db.post_treatment_db()
     db.graph.close()

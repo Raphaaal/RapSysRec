@@ -19,6 +19,10 @@ class Neo4JHandler:
         with self.driver.session() as session:
             session.write_transaction(self._delete_duplicate)
 
+    def delete_duplicate_tracks_name(self):
+        with self.driver.session() as session:
+            session.write_transaction(self._delete_duplicate_tracks)
+
     def delete_nodes_without_label(self):
         with self.driver.session() as session:
             session.write_transaction(self._delete_nodes_without_label)
@@ -154,6 +158,59 @@ class Neo4JHandler:
             "WHERE SIZE(artists) > 1 "
             "UNWIND artists[1..] AS artist "
             "DETACH DELETE artist "
+        )
+        return [row[0] for row in result]\
+
+    @staticmethod
+    def _delete_duplicate_tracks(tx):
+        result = tx.run(
+            """
+            MATCH (a:Artist)-[r:FEAT]->(b:Artist)
+            WITH a, b, r.track_name as track_name, COLLECT(distinct r)[1..] AS unwanted
+            FOREACH(x IN unwanted | DELETE x)
+            """
+        )
+        result = tx.run(
+            """
+            MATCH (a:Artist)-[r:FEAT_2015]->(b:Artist)
+            WITH a, b, r.track_name as track_name, COLLECT(distinct r)[1..] AS unwanted
+            FOREACH(x IN unwanted | DELETE x)
+            """
+        )
+        result = tx.run(
+            """
+            MATCH (a:Artist)-[r:FEAT_2016]->(b:Artist)
+            WITH a, b, r.track_name as track_name, COLLECT(distinct r)[1..] AS unwanted
+            FOREACH(x IN unwanted | DELETE x)
+            """
+        )
+        result = tx.run(
+            """
+            MATCH (a:Artist)-[r:FEAT_2017]->(b:Artist)
+            WITH a, b, r.track_name as track_name, COLLECT(distinct r)[1..] AS unwanted
+            FOREACH(x IN unwanted | DELETE x)
+            """
+        )
+        result = tx.run(
+            """
+            MATCH (a:Artist)-[r:FEAT_2018]->(b:Artist)
+            WITH a, b, r.track_name as track_name, COLLECT(distinct r)[1..] AS unwanted
+            FOREACH(x IN unwanted | DELETE x)
+            """
+        )
+        result = tx.run(
+            """
+            MATCH (a:Artist)-[r:FEAT_2019]->(b:Artist)
+            WITH a, b, r.track_name as track_name, COLLECT(distinct r)[1..] AS unwanted
+            FOREACH(x IN unwanted | DELETE x)
+            """
+        )
+        result = tx.run(
+            """
+            MATCH (a:Artist)-[r:FEAT_2020]->(b:Artist)
+            WITH a, b, r.track_name as track_name, COLLECT(distinct r)[1..] AS unwanted
+            FOREACH(x IN unwanted | DELETE x)
+            """
         )
         return [row[0] for row in result]
 
