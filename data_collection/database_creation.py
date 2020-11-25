@@ -95,5 +95,9 @@ if __name__ == "__main__":
     #     feats_years = db.graph.create_feats_year_2020(csv_path='C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/feats_chunk.csv')
     # logger.info('Ended feats (all) writing to DB')
 
+    # logger.info('Starting datasets' artists nb of yearly tracks writing to DB')
+    artists = db.graph.add_datasets_artists_nb_yearly_tracks('C:/Users/patafilm/Documents/Projets/RapSysRec/RapSysRec/data_collection/scraping_history/artists_yearly_tracks.csv')
+    # logger.info('Ended datasets' artists nb of yearly tracks writing to DB')
+
     db.post_treatment_db()
     db.graph.close()
