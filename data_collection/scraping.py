@@ -401,6 +401,35 @@ class Scraping:
 
                 post_treatment_scraping_history()  # Remove duplicates
 
+    def get_nb_tracks_year(self, artist_urn, min_album_date, output_artist_yearly_tracks):
+        # Artist
+        artist_info = {
+            'artist_urn': artist_urn,
+            'nb_tracks_2015': 0,
+            'nb_tracks_2016': 0,
+            'nb_tracks_2017': 0,
+            'nb_tracks_2018': 0,
+            'nb_tracks_2019': 0,
+            'nb_tracks_2020': 0,
+        }
+
+        # Albums info
+        albums = self.spotify.get_artist_albums(artist_urn)
+        for album in albums:
+            album_release_dt = get_album_release_dt(album)
+            if album_release_dt:
+                if album_release_dt > datetime.strptime(min_album_date, '%Y-%m-%d'):
+                    # Count nb of tracks per year
+                    # TODO: check!
+                    for year in range(2015, 2021):
+                        min_date = str(year) + '-' + '01-01'
+                        max_date = str(year) + '-' + '12-31'
+                        if datetime.strptime(min_date, '%Y-%m-%d') <= album_release_dt <= datetime.strptime(max_date,'%Y-%m-%d') and album['type'] in ['single', 'album']:
+                            artist_info['nb_tracks_' + str(year)] += len(
+                                self.spotify.sp.album_tracks(album['id'])['items'])
+
+        write_artist_to_csv([artist_info], output_artist_yearly_tracks)
+
 
 if __name__ == "__main__":
     db = Scraping(
@@ -423,17 +452,29 @@ if __name__ == "__main__":
     # )
 
     # For retry
-    db.expand_from_artist(
-        output_artist="scraping_history/artists.csv",
-        output_feat="scraping_history/feats.csv",
-        output_label="scraping_history/labels.csv",
-        output_genre="scraping_history/genres.csv",
-        output_linked_artists="scraping_history/linked_artists",
-        nb_hops=3,
-        artist_urn="6qFt3TjvxMt77YGsktWG8Z",
-        redo_from_hop=2,
-        last_urn_scraped="0dFKe6BmcXTSwyC2NMWK6I",
-        min_album_date='2015-01-01'
-    )
+    # db.expand_from_artist(
+    #     output_artist="scraping_history/artists.csv",
+    #     output_feat="scraping_history/feats.csv",
+    #     output_label="scraping_history/labels.csv",
+    #     output_genre="scraping_history/genres.csv",
+    #     output_linked_artists="scraping_history/linked_artists",
+    #     nb_hops=3,
+    #     artist_urn="6qFt3TjvxMt77YGsktWG8Z",
+    #     redo_from_hop=2,
+    #     last_urn_scraped="0dFKe6BmcXTSwyC2NMWK6I",
+    #     min_album_date='2015-01-01'
+    # )
 
     post_treatment_scraping_history()
+
+    # For yearly nb of tracks of all artists
+    training_urns_node1 = pd.read_csv('../predict/prepare_datasets/train_set.csv')['node1_urn'].unique().values.tolist()
+    training_urns_node2 = pd.read_csv('../predict/prepare_datasets/train_set.csv')['node2_urn'].unique().values.tolist()
+    testing_urns_node1 = pd.read_csv('../predict/prepare_datasets/test_set.csv')['node1_urn'].unique().values.tolist()
+    testing_urns_node2 = pd.read_csv('../predict/prepare_datasets/test_set.csv')['node2_urn'].unique().values.tolist()
+    artist_specific_urns_node1 = pd.read_csv('../predict/prepare_datasets/artist_set_set.csv')['node1_urn'].unique().values.tolist()
+    artist_specific_urns_node2 = pd.read_csv('../predict/prepare_datasets/artist_set_set.csv')['node2_urn'].unique().values.tolist()
+    urns = training_urns_node1 + training_urns_node2 + testing_urns_node1 + testing_urns_node2 + artist_specific_urns_node1 +artist_specific_urns_node2
+
+    for urn in urns:
+        db.get_nb_tracks_year(self, urn, '2015-01-01', 'artists_yearly_tracks')

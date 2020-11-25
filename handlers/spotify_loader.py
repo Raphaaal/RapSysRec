@@ -96,16 +96,6 @@ class SpotifyLoader:
         if album_featurings:
             return album_featurings
 
-    def get_nb_tracks_year(self, min_date, max_date, urn):
-        albums = self.get_artist_albums(urn)
-        tracks = []
-        for album in albums:
-            album_release_dt = get_album_release_dt(album)
-            if album_release_dt:
-                if datetime.strptime(min_date, '%Y-%m-%d') <= album_release_dt <= datetime.strptime(max_date, '%Y-%m-%d'):
-                    tracks.extend(self.sp.album_tracks(album['id']))
-        return len(tracks)
-
     def get_artist_albums(self, artist_urn):
         albums = []
         albums_list = []

@@ -19,23 +19,23 @@ graph = Neo4JHandler(
 driver = graph.driver
 
 
-def get_artist_specific_features(artist_df, min_nb_tn, driver):
-    logger.info("Starting to compute artist %s's Pandas DataFrame.")
-    artist_df['label'] = artist_df['label'].astype('category')
-    logger.info('Artist pairs computed.')
-
-    # Calculate features
-    artist_df = extract_nb_common_label_year(artist_df, driver)
-    artist_df = extract_same_genre_feature(artist_df, driver)
-    artist_df = extract_popularity_diff_feature(artist_df, driver)
-    artist_df = apply_graphy_features_all(artist_df, "FEAT", driver)  # We use the standard "FEAT" relationship type
-    # Filter out pairs with < min_nb_tn total neighbors (because the next computations are intensive)
-    artist_df = artist_df.loc[artist_df['tn'] >= min_nb_tn]
-    artist_df = apply_triangles_features(artist_df, "triangles", "coefficient", driver)
-    artist_df = apply_community_features(artist_df, "partition", "louvain", driver)
-
-    logger.info("Artist %s's Pandas DataFrame computed.")
-    return artist_df
+# def get_artist_specific_features(artist_df, min_nb_tn, driver):
+#     logger.info("Starting to compute artist %s's Pandas DataFrame.")
+#     artist_df['label'] = artist_df['label'].astype('category')
+#     logger.info('Artist pairs computed.')
+#
+#     # Calculate features
+#     artist_df = extract_nb_common_label_year(artist_df, driver)
+#     artist_df = extract_same_genre_feature(artist_df, driver)
+#     artist_df = extract_popularity_diff_feature(artist_df, driver)
+#     artist_df = apply_graphy_features_all(artist_df, "FEAT", driver)  # We use the standard "FEAT" relationship type
+#     # Filter out pairs with < min_nb_tn total neighbors (because the next computations are intensive)
+#     artist_df = artist_df.loc[artist_df['tn'] >= min_nb_tn]
+#     artist_df = apply_triangles_features(artist_df, "triangles", "coefficient", driver)
+#     artist_df = apply_community_features(artist_df, "partition", "louvain", driver)
+#
+#     logger.info("Artist %s's Pandas DataFrame computed.")
+#     return artist_df
 
 
 def apply_graphy_features_all(data, rel_type, driver_instance=driver):
@@ -194,7 +194,7 @@ def apply_triangles_features_all(data, triangles_prop, coefficient_prop, driver_
     apoc.coll.max([p1[$trianglesProp], p2[$trianglesProp]]) AS maxTriangles_all,
     apoc.coll.avg([p1[$trianglesProp], p2[$trianglesProp]]) AS avgTriangles_all,
     apoc.coll.min([p1[$coefficientProp], p2[$coefficientProp]]) AS minCoefficient_all,
-    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_all
+    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_all,
     apoc.coll.avg([p1[$coefficientProp], p2[$coefficientProp]]) AS avgCoefficient_all
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -225,7 +225,7 @@ def apply_triangles_features_2015(data, triangles_prop, coefficient_prop, driver
     apoc.coll.max([p1[$trianglesProp], p2[$trianglesProp]]) AS maxTriangles_2015,
     apoc.coll.avg([p1[$trianglesProp], p2[$trianglesProp]]) AS avgTriangles_2015,
     apoc.coll.min([p1[$coefficientProp], p2[$coefficientProp]]) AS minCoefficient_2015,
-    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_2015
+    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_2015,
     apoc.coll.avg([p1[$coefficientProp], p2[$coefficientProp]]) AS avgCoefficient_2015
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -256,7 +256,7 @@ def apply_triangles_features_2016(data, triangles_prop, coefficient_prop, driver
     apoc.coll.max([p1[$trianglesProp], p2[$trianglesProp]]) AS maxTriangles_2016,
     apoc.coll.avg([p1[$trianglesProp], p2[$trianglesProp]]) AS avgTriangles_2016,
     apoc.coll.min([p1[$coefficientProp], p2[$coefficientProp]]) AS minCoefficient_2016,
-    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_2016
+    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_2016,
     apoc.coll.avg([p1[$coefficientProp], p2[$coefficientProp]]) AS avgCoefficient_2016
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -287,7 +287,7 @@ def apply_triangles_features_2017(data, triangles_prop, coefficient_prop, driver
     apoc.coll.max([p1[$trianglesProp], p2[$trianglesProp]]) AS maxTriangles_2017,
     apoc.coll.avg([p1[$trianglesProp], p2[$trianglesProp]]) AS avgTriangles_2017,
     apoc.coll.min([p1[$coefficientProp], p2[$coefficientProp]]) AS minCoefficient_2017,
-    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_2017
+    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_2017,
     apoc.coll.avg([p1[$coefficientProp], p2[$coefficientProp]]) AS avgCoefficient_2017
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -318,7 +318,7 @@ def apply_triangles_features_2018(data, triangles_prop, coefficient_prop, driver
     apoc.coll.max([p1[$trianglesProp], p2[$trianglesProp]]) AS maxTriangles_2018,
     apoc.coll.avg([p1[$trianglesProp], p2[$trianglesProp]]) AS avgTriangles_2018,
     apoc.coll.min([p1[$coefficientProp], p2[$coefficientProp]]) AS minCoefficient_2018,
-    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_2018
+    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_2018,
     apoc.coll.avg([p1[$coefficientProp], p2[$coefficientProp]]) AS avgCoefficient_2018
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -349,7 +349,7 @@ def apply_triangles_features_2019(data, triangles_prop, coefficient_prop, driver
     apoc.coll.max([p1[$trianglesProp], p2[$trianglesProp]]) AS maxTriangles_2019,
     apoc.coll.avg([p1[$trianglesProp], p2[$trianglesProp]]) AS avgTriangles_2019,
     apoc.coll.min([p1[$coefficientProp], p2[$coefficientProp]]) AS minCoefficient_2019,
-    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_2019
+    apoc.coll.max([p1[$coefficientProp], p2[$coefficientProp]]) AS maxCoefficient_2019,
     apoc.coll.avg([p1[$coefficientProp], p2[$coefficientProp]]) AS avgCoefficient_2019
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -376,7 +376,7 @@ def apply_community_features_all(data, partition_prop, louvain_prop, louvain_fir
     RETURN pair.node1 AS node1,
     pair.node2 AS node2,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $partitionProp) AS sp_all,
-    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_all
+    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_all,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $louvain_first_prop) AS sl_first_all
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -403,7 +403,7 @@ def apply_community_features_2015(data, partition_prop, louvain_prop, louvain_fi
     RETURN pair.node1 AS node1,
     pair.node2 AS node2,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $partitionProp) AS sp_2015,
-    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_2015
+    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_2015,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $louvain_first_prop) AS sl_first_2015
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -430,7 +430,7 @@ def apply_community_features_2016(data, partition_prop, louvain_prop, louvain_fi
     RETURN pair.node1 AS node1,
     pair.node2 AS node2,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $partitionProp) AS sp_2016,
-    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_2016
+    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_2016,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $louvain_first_prop) AS sl_first_2016
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -457,7 +457,7 @@ def apply_community_features_2017(data, partition_prop, louvain_prop, louvain_fi
     RETURN pair.node1 AS node1,
     pair.node2 AS node2,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $partitionProp) AS sp_2017,
-    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_2017
+    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_2017,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $louvain_first_prop) AS sl_first_2017
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -484,7 +484,7 @@ def apply_community_features_2018(data, partition_prop, louvain_prop, louvain_fi
     RETURN pair.node1 AS node1,
     pair.node2 AS node2,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $partitionProp) AS sp_2018,
-    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_2018
+    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_2018,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $louvain_first_prop) AS sl_first_2018
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -511,7 +511,7 @@ def apply_community_features_2019(data, partition_prop, louvain_prop, louvain_fi
     RETURN pair.node1 AS node1,
     pair.node2 AS node2,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $partitionProp) AS sp_2019,
-    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_2019
+    gds.alpha.linkprediction.sameCommunity(p1, p2, $louvainProp) AS sl_2019,
     gds.alpha.linkprediction.sameCommunity(p1, p2, $louvain_first_prop) AS sl_first_2019
     """
     pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
@@ -1176,17 +1176,62 @@ def nodes_degrees_year_2019(data, driver_instance, year='2019'):
     return pd.merge(data, nb_yearly_feats, on=["node1", "node2"])
 
 
-def add_nb_tracks(spotify_loader, df_test_under, graph, year):
-    min_date = str(year) + '-' + '01-01'
-    max_date = str(year) + '-' + '12-31'
-    node1_ids = df_test_under['node1'].values.tolist()
-    node2_ids = df_test_under['node2'].values.tolist()
-    for nodes in zip(node1_ids, node2_ids):
-        nb_tracks_node1 = spotify_loader.get_nb_tracks_year(min_date, max_date, graph.get_urn_by_id(nodes[0]))
-        nb_tracks_node2 = spotify_loader.get_nb_tracks_year(min_date, max_date, graph.get_urn_by_id(nodes[1]))
-    df_test_under['nb_tracks_'+str(year)+'_p1'] = nb_tracks_node1
-    df_test_under['nb_tracks_'+str(year)+'_p2'] = nb_tracks_node2
-    return df_test_under
+def add_nb_tracks_yearly(data, graph_driver):
+    query = """
+        UNWIND $pairs AS pair
+        MATCH (p1) WHERE id(p1) = pair.node1 WITH 
+            p1.nb_tracks_2015 as nb_tracks_2015_p1, 
+            p1.nb_tracks_2016 as nb_tracks_2016_p1, 
+            p1.nb_tracks_2017 as nb_tracks_2017_p1, 
+            p1.nb_tracks_2018 as nb_tracks_2018_p1, 
+            p1.nb_tracks_2019 as nb_tracks_2019_p1, 
+            pair
+        MATCH (p2) WHERE id(p2) = pair.node2 WITH 
+            p2.nb_tracks_2015 as nb_tracks_2015_p2, 
+            p2.nb_tracks_2016 as nb_tracks_2016_p2, 
+            p2.nb_tracks_2017 as nb_tracks_2017_p2, 
+            p2.nb_tracks_2018 as nb_tracks_2018_p2, 
+            p2.nb_tracks_2019 as nb_tracks_2019_p2, 
+            nb_tracks_2015_p1, 
+            nb_tracks_2016_p1, 
+            nb_tracks_2017_p1, 
+            nb_tracks_2018_p1, 
+            nb_tracks_2019_p1, 
+            pair
+        RETURN DISTINCT
+        pair.node1 AS node1, 
+        pair.node2 AS node2,
+        nb_tracks_2015_p1,
+        nb_tracks_2015_p2,
+        (nb_tracks_2015_p1 + nb_tracks_2015_p2) / 2 as nb_tracks_2015_avg,
+        nb_tracks_2016_p1,
+        nb_tracks_2016_p2,
+        (nb_tracks_2016_p1 + nb_tracks_2016_p2) / 2 as nb_tracks_2016_avg,
+        nb_tracks_2017_p1,
+        nb_tracks_2017_p2,
+        (nb_tracks_2017_p1 + nb_tracks_2017_p2) / 2 as nb_tracks_2017_avg,
+        nb_tracks_2018_p1,
+        nb_tracks_2018_p2,
+        (nb_tracks_2018_p1 + nb_tracks_2018_p2) / 2 as nb_tracks_2018_avg,
+        nb_tracks_2019_p1,
+        nb_tracks_2019_p2,
+        (nb_tracks_2019_p1 + nb_tracks_2019_p2) / 2 as nb_tracks_2019_avg,
+        nb_tracks_2015_p1 + nb_tracks_2016_p1 + nb_tracks_2017_p1 + nb_tracks_2018_p1 + nb_tracks_2019_p1 as nb_tracks_all_p1,
+        nb_tracks_2015_p2 + nb_tracks_2016_p2 + nb_tracks_2017_p2 + nb_tracks_2018_p2 + nb_tracks_2019_p2 as nb_tracks_all_p2,
+        (nb_tracks_2015_p1 + nb_tracks_2016_p1 + nb_tracks_2017_p1 + nb_tracks_2018_p1 + nb_tracks_2019_p1 + nb_tracks_2015_p2 + nb_tracks_2016_p2 + nb_tracks_2017_p2 + nb_tracks_2018_p2 + nb_tracks_2019_p2) / 2 as nb_tracks_all_avg
+    """
+    pairs = [{"node1": node1, "node2": node2} for node1, node2 in data[["node1", "node2"]].values.tolist()]
+    params = {
+        "pairs": pairs
+    }
+
+    with graph_driver.session() as session:
+        result = session.run(query, params)
+        features = pd.DataFrame([dict(record) for record in result])
+
+    nb_yearly_tracks = pd.merge(data[["node1", "node2"]], features, how="left", on=["node1", "node2"])
+
+    return pd.merge(data, nb_yearly_tracks, on=["node1", "node2"])
 
 
 def engineer_features(driver, dataset):
@@ -1212,6 +1257,8 @@ def engineer_features(driver, dataset):
     df_test_under = extract_nb_feats_2018(df_test_under, driver)
     df_test_under = extract_nb_feats_2019(df_test_under, driver)
 
+    df_test_under = add_nb_tracks_yearly(df_test_under, driver)
+
     df_test_under = nodes_degrees_year_all(df_test_under, driver)
     df_test_under = nodes_degrees_year_2015(df_test_under, driver)
     df_test_under = nodes_degrees_year_2016(df_test_under, driver)
@@ -1235,11 +1282,11 @@ def engineer_features(driver, dataset):
     df_test_under = apply_triangles_features_2018(df_test_under, "triangles_2018", "coefficient_2018", driver)
     df_test_under = apply_triangles_features_2019(df_test_under, "triangles_2019", "coefficient_2019", driver)
 
-    df_test_under = apply_community_features_all(df_test_under, "partition_all", "louvain_all", driver)
-    df_test_under = apply_community_features_2015(df_test_under, "partition_2015", "louvain_2015", driver)
-    df_test_under = apply_community_features_2016(df_test_under, "partition_2016", "louvain_2016", driver)
-    df_test_under = apply_community_features_2017(df_test_under, "partition_2017", "louvain_2017", driver)
-    df_test_under = apply_community_features_2018(df_test_under, "partition_2018", "louvain_2018", driver)
-    df_test_under = apply_community_features_2019(df_test_under, "partition_2019", "louvain_2019", driver)
+    df_test_under = apply_community_features_all(df_test_under, "partition_all", "louvain_all", "louvain_first_all", driver)
+    df_test_under = apply_community_features_2015(df_test_under, "partition_2015", "louvain_2015", "louvain_first_2015", driver)
+    df_test_under = apply_community_features_2016(df_test_under, "partition_2016", "louvain_2016", "louvain_first_2016", driver)
+    df_test_under = apply_community_features_2017(df_test_under, "partition_2017", "louvain_2017", "louvain_first_2017", driver)
+    df_test_under = apply_community_features_2018(df_test_under, "partition_2018", "louvain_2018", "louvain_first_2018", driver)
+    df_test_under = apply_community_features_2019(df_test_under, "partition_2019", "louvain_2019", "louvain_first_2019", driver)
 
     return df_test_under
