@@ -38,15 +38,19 @@ class Neo4JHandler:
     def create_genres(self, csv_path):
         path = "file:///" + csv_path
         with self.driver.session() as session:
-            # result = session.write_transaction(self._create_genres_csv, path)
             result = self._create_genres_csv(session, path)
             return result
 
     def create_artists(self, csv_path):
         path = "file:///" + csv_path
         with self.driver.session() as session:
-            # result = session.write_transaction(self._create_genres_csv, path)
             result = self._create_artists_csv(session, path)
+            return result
+
+    def add_datasets_artists_nb_yearly_tracks(self, csv_path):
+        path = "file:///" + csv_path
+        with self.driver.session() as session:
+            result = self._add_artists_nb_yearly_tracks_csv(session, path)
             return result
 
     def create_feats_all(self, csv_path):
@@ -281,6 +285,24 @@ class Neo4JHandler:
             MERGE (a: Artist {urn: row.artist_urn})
             ON CREATE SET a.name = row.artist_name, a.popularity = row.artist_popularity, a.nb_tracks_2015 = row.nb_tracks_2015, a.nb_tracks_2016 = row.nb_tracks_2016, a.nb_tracks_2017 = row.nb_tracks_2017, a.nb_tracks_2018 = row.nb_tracks_2018, a.nb_tracks_2019 = row.nb_tracks_2019, a.nb_tracks_2020 = row.nb_tracks_2020
             ON MATCH SET a.name = row.artist_name, a.popularity = row.artist_popularity, a.nb_tracks_2015 = row.nb_tracks_2015, a.nb_tracks_2016 = row.nb_tracks_2016, a.nb_tracks_2017 = row.nb_tracks_2017, a.nb_tracks_2018 = row.nb_tracks_2018, a.nb_tracks_2019 = row.nb_tracks_2019, a.nb_tracks_2020 = row.nb_tracks_2020
+            """,
+            csv_path=csv_path
+        )
+        return [row[0] for row in result]\
+
+    @staticmethod
+    # Need open transactions for USING PERIODIC COMMIT to work
+    def _add_artists_nb_yearly_tracks_csv(session, csv_path):
+        result = session.run(
+            """
+            USING PERIODIC COMMIT 100
+
+            LOAD CSV WITH HEADERS FROM $csv_path AS row
+            WITH distinct row
+
+            MERGE (a: Artist {urn: row.artist_urn})
+            ON CREATE SET a.nb_tracks_2015 = row.nb_tracks_2015, a.nb_tracks_2016 = row.nb_tracks_2016, a.nb_tracks_2017 = row.nb_tracks_2017, a.nb_tracks_2018 = row.nb_tracks_2018, a.nb_tracks_2019 = row.nb_tracks_2019, a.nb_tracks_2020 = row.nb_tracks_2020
+            ON MATCH SET a.nb_tracks_2015 = row.nb_tracks_2015, a.nb_tracks_2016 = row.nb_tracks_2016, a.nb_tracks_2017 = row.nb_tracks_2017, a.nb_tracks_2018 = row.nb_tracks_2018, a.nb_tracks_2019 = row.nb_tracks_2019, a.nb_tracks_2020 = row.nb_tracks_2020
             """,
             csv_path=csv_path
         )
