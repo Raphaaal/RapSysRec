@@ -116,6 +116,23 @@ def write_artist_to_csv(artists, csv_path):
             )
 
 
+def write_artist_to_csv_yearly_nb_tracks(artists, csv_path):
+    with io.open(csv_path, 'a', newline='', encoding='utf-8') as f:
+        csv_writer = csv.writer(f)
+        for artist in artists:
+            csv_writer.writerow(
+                [
+                    artist["artist_urn"],
+                    artist["nb_tracks_2015"],
+                    artist["nb_tracks_2016"],
+                    artist["nb_tracks_2017"],
+                    artist["nb_tracks_2018"],
+                    artist["nb_tracks_2019"],
+                    artist["nb_tracks_2020"],
+                ]
+            )
+
+
 def get_album_release_dt(album):
     album_release_dt = None
     try:
@@ -263,6 +280,7 @@ class Scraping:
         }
 
         # Albums info
+        # TODO: if album is 'appears on', then scrap only the feat from the considered artist (not the other ones on the compilation)
         albums = self.spotify.get_artist_albums(artist_urn)
         for album in albums:
             album_release_dt = get_album_release_dt(album)
@@ -428,7 +446,65 @@ class Scraping:
                             artist_info['nb_tracks_' + str(year)] += len(
                                 self.spotify.sp.album_tracks(album['id'])['items'])
 
-        write_artist_to_csv([artist_info], output_artist_yearly_tracks)
+        write_artist_to_csv_yearly_nb_tracks([artist_info], output_artist_yearly_tracks)
+
+    def write_datasets_artists_yearly_nb_tracks(self, iter):
+        if iter == 0:
+            truncate_file("scraping_history/artists_yearly_tracks.csv")
+            artist = [
+                {
+                    'artist_urn': 'artist_urn',
+                    'nb_tracks_2015': 'nb_tracks_2015',
+                    'nb_tracks_2016': 'nb_tracks_2016',
+                    'nb_tracks_2017': 'nb_tracks_2017',
+                    'nb_tracks_2018': 'nb_tracks_2018',
+                    'nb_tracks_2019': 'nb_tracks_2019',
+                    'nb_tracks_2020': 'nb_tracks_2020',
+                }
+            ]
+            write_artist_to_csv_yearly_nb_tracks(artist, "scraping_history/artists_yearly_tracks.csv")
+        training_urns_node1 = pd.read_csv('../predict/prepare_datasets/train_set.csv')['node1_urn'].unique().tolist()
+        training_urns_node2 = pd.read_csv('../predict/prepare_datasets/train_set.csv')['node2_urn'].unique().tolist()
+        testing_urns_node1 = pd.read_csv('../predict/prepare_datasets/test_set.csv')['node1_urn'].unique().tolist()
+        testing_urns_node2 = pd.read_csv('../predict/prepare_datasets/test_set.csv')['node2_urn'].unique().tolist()
+        artist_specific_urns_node1 = pd.read_csv('../predict/prepare_datasets/artist_set.csv')[
+            'node1_urn'].unique().tolist()
+        artist_specific_urns_node2 = pd.read_csv('../predict/prepare_datasets/artist_set.csv')[
+            'node2_urn'].unique().tolist()
+        urns = training_urns_node1 + training_urns_node2 + testing_urns_node1 + testing_urns_node2 + artist_specific_urns_node1 + artist_specific_urns_node2
+        urns = list(dict.fromkeys(urns))
+
+        for i, urn in tqdm(enumerate(urns)):
+            try:
+                if i >= iter:
+                    self.get_nb_tracks_year(urn, '2015-01-01', 'scraping_history/artists_yearly_tracks.csv')
+            except requests.exceptions.ConnectionError:
+                print('DEBUG : iter break at ' + str(i) + ' because of connection error')
+                return i
+            except requests.exceptions.ReadTimeout:
+                print('DEBUG : iter break at ' + str(i) + ' because of time out')
+                return i
+        return -1
+
+
+def scrap_nb_yearly_tracks(initial_iter):
+    break_iter = 0
+    logger.info('Start yearly tracks scraping from iteration %s', str(initial_iter))
+    while True:
+        if break_iter > -1:
+            spotify = Scraping(
+                spotify_client_id="28d60111ea634effb71f87304bed9285",
+                spotify_client_secret="4461b49321914c59b136ecd52090dcd2"
+            )
+            if break_iter == 0:
+                break_iter = spotify.write_datasets_artists_yearly_nb_tracks(iter=initial_iter)
+            else:
+                break_iter = spotify.write_datasets_artists_yearly_nb_tracks(iter=break_iter)
+            logger.info('Yearly tracks scraping break at iteration %s', str(break_iter))
+        else:
+            break
+
+    logger.info('End yearly tracks scraping from iteration %s', str(break_iter))
 
 
 if __name__ == "__main__":
@@ -465,16 +541,10 @@ if __name__ == "__main__":
     #     min_album_date='2015-01-01'
     # )
 
-    post_treatment_scraping_history()
+    # post_treatment_scraping_history()
 
-    # For yearly nb of tracks of all artists
-    training_urns_node1 = pd.read_csv('../predict/prepare_datasets/train_set.csv')['node1_urn'].unique().values.tolist()
-    training_urns_node2 = pd.read_csv('../predict/prepare_datasets/train_set.csv')['node2_urn'].unique().values.tolist()
-    testing_urns_node1 = pd.read_csv('../predict/prepare_datasets/test_set.csv')['node1_urn'].unique().values.tolist()
-    testing_urns_node2 = pd.read_csv('../predict/prepare_datasets/test_set.csv')['node2_urn'].unique().values.tolist()
-    artist_specific_urns_node1 = pd.read_csv('../predict/prepare_datasets/artist_set_set.csv')['node1_urn'].unique().values.tolist()
-    artist_specific_urns_node2 = pd.read_csv('../predict/prepare_datasets/artist_set_set.csv')['node2_urn'].unique().values.tolist()
-    urns = training_urns_node1 + training_urns_node2 + testing_urns_node1 + testing_urns_node2 + artist_specific_urns_node1 +artist_specific_urns_node2
+    # For yearly nb of tracks of all artists (AFTER datasets ids generation)
 
-    for urn in urns:
-        db.get_nb_tracks_year(self, urn, '2015-01-01', 'artists_yearly_tracks')
+    # Write nb of yearly tracks for the artists present in the datasets
+    initial_iter = 30673
+    scrap_nb_yearly_tracks(initial_iter)
