@@ -43,7 +43,7 @@ def get_train_set(max_links, batch_size, target_year, driver):
     truncate_file('training_existing_links.csv')
     truncate_file('training_all_ids.csv')
     truncate_file('training_missing_links.csv')
-    write_list_to_csv([['node1', 'node2', 'label']], 'training_missing_links.csv')
+    write_list_to_csv([['node1', 'node2', 'label', 'node1_urn', 'node2_urn']], 'training_missing_links.csv')
 
     # Get existing links
     with driver.session() as session:

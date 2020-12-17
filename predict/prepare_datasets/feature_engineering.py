@@ -1002,8 +1002,8 @@ def nodes_degrees_year_all(data, driver_instance, year='all'):
     feature_name_p2 = 'degree_p2_' + str(year)
     query = """
             UNWIND $pairs AS pair
-            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT]->()) as degree1, pair
-            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT]->()) as degree2, degree1, pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT]-()) as degree1, pair
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT]-()) as degree2, degree1, pair
             RETURN DISTINCT
             pair.node1 AS node1, 
             pair.node2 AS node2,
@@ -1032,8 +1032,8 @@ def nodes_degrees_year_2015(data, driver_instance, year='2015'):
     feature_name_p2 = 'degree_p2_' + str(year)
     query = """
             UNWIND $pairs AS pair
-            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT_2015]->()) as degree1, pair
-            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT_2015]->()) as degree2, degree1, pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT_2015]-()) as degree1, pair
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT_2015]-()) as degree2, degree1, pair
             RETURN DISTINCT
             pair.node1 AS node1, 
             pair.node2 AS node2,
@@ -1062,8 +1062,8 @@ def nodes_degrees_year_2016(data, driver_instance, year='2016'):
     feature_name_p2 = 'degree_p2_' + str(year)
     query = """
             UNWIND $pairs AS pair
-            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT_2016]->()) as degree1, pair
-            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT_2016]->()) as degree2, degree1, pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT_2016]-()) as degree1, pair
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT_2016]-()) as degree2, degree1, pair
             RETURN DISTINCT
             pair.node1 AS node1, 
             pair.node2 AS node2,
@@ -1092,8 +1092,8 @@ def nodes_degrees_year_2017(data, driver_instance, year='2017'):
     feature_name_p2 = 'degree_p2_' + str(year)
     query = """
             UNWIND $pairs AS pair
-            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT_2017]->()) as degree1, pair
-            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT_2017]->()) as degree2, degree1, pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT_2017]-()) as degree1, pair
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT_2017]-()) as degree2, degree1, pair
             RETURN DISTINCT
             pair.node1 AS node1, 
             pair.node2 AS node2,
@@ -1122,8 +1122,8 @@ def nodes_degrees_year_2018(data, driver_instance, year='2018'):
     feature_name_p2 = 'degree_p2_' + str(year)
     query = """
             UNWIND $pairs AS pair
-            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT_2018]->()) as degree1, pair
-            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT_2018]->()) as degree2, degree1, pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT_2018]-()) as degree1, pair
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT_2018]-()) as degree2, degree1, pair
             RETURN DISTINCT
             pair.node1 AS node1, 
             pair.node2 AS node2,
@@ -1152,8 +1152,8 @@ def nodes_degrees_year_2019(data, driver_instance, year='2019'):
     feature_name_p2 = 'degree_p2_' + str(year)
     query = """
             UNWIND $pairs AS pair
-            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT_2019]->()) as degree1, pair
-            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT_2019]->()) as degree2, degree1, pair
+            MATCH (p1) WHERE id(p1) = pair.node1 WITH size((p1)-[:FEAT_2019]-()) as degree1, pair
+            MATCH (p2) WHERE id(p2) = pair.node2 WITH size((p2)-[:FEAT_2019]-()) as degree2, degree1, pair
             RETURN DISTINCT
             pair.node1 AS node1, 
             pair.node2 AS node2,
@@ -1180,18 +1180,18 @@ def add_nb_tracks_yearly(data, graph_driver):
     query = """
         UNWIND $pairs AS pair
         MATCH (p1) WHERE id(p1) = pair.node1 WITH 
-            p1.nb_tracks_2015 as nb_tracks_2015_p1, 
-            p1.nb_tracks_2016 as nb_tracks_2016_p1, 
-            p1.nb_tracks_2017 as nb_tracks_2017_p1, 
-            p1.nb_tracks_2018 as nb_tracks_2018_p1, 
-            p1.nb_tracks_2019 as nb_tracks_2019_p1, 
+            toInteger(p1.nb_tracks_2015) as nb_tracks_2015_p1, 
+            toInteger(p1.nb_tracks_2016) as nb_tracks_2016_p1, 
+            toInteger(p1.nb_tracks_2017) as nb_tracks_2017_p1, 
+            toInteger(p1.nb_tracks_2018) as nb_tracks_2018_p1, 
+            toInteger(p1.nb_tracks_2019) as nb_tracks_2019_p1, 
             pair
         MATCH (p2) WHERE id(p2) = pair.node2 WITH 
-            p2.nb_tracks_2015 as nb_tracks_2015_p2, 
-            p2.nb_tracks_2016 as nb_tracks_2016_p2, 
-            p2.nb_tracks_2017 as nb_tracks_2017_p2, 
-            p2.nb_tracks_2018 as nb_tracks_2018_p2, 
-            p2.nb_tracks_2019 as nb_tracks_2019_p2, 
+            toInteger(p2.nb_tracks_2015) as nb_tracks_2015_p2, 
+            toInteger(p2.nb_tracks_2016) as nb_tracks_2016_p2, 
+            toInteger(p2.nb_tracks_2017) as nb_tracks_2017_p2, 
+            toInteger(p2.nb_tracks_2018) as nb_tracks_2018_p2, 
+            toInteger(p2.nb_tracks_2019) as nb_tracks_2019_p2, 
             nb_tracks_2015_p1, 
             nb_tracks_2016_p1, 
             nb_tracks_2017_p1, 

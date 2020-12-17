@@ -53,18 +53,12 @@ def write_artist_specific_set(artist_urn, path, driver):
 
 
 if __name__ == '__main__':
-    # Graph DB connection
     graph = Neo4JHandler(
         uri="bolt://localhost:7687",
         user="neo4j",
         password="root"
     )
     driver = graph.driver
-
-    # spotify_loader = SpotifyLoader(
-    #     client_id='28d60111ea634effb71f87304bed9285',
-    #     client_secret='4461b49321914c59b136ecd52090dcd2'
-    # )
 
     # Build train dataset
     # logger.info("Started training set creation")

@@ -41,7 +41,7 @@ def get_test_set(max_links, density, batch_size, target_year, driver):
     # Reset datasets
     truncate_file('testing_existing_links.csv')
     truncate_file('testing_missing_links.csv')
-    write_list_to_csv([['node1', 'node2', 'label']], 'testing_missing_links.csv')
+    write_list_to_csv([['node1', 'node2', 'label', 'node1_urn', 'node2_urn']], 'testing_missing_links.csv')
 
     # Get existing links
     nb_samples = 10
